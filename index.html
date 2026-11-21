@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Treinos Pedro</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: coluna única de celular. Abas dos dias, barra de progresso fixa, um cartão por exercício com linhas de série (kg, reps, check). */
+:root {
+  --bg: #f4f3f7;
+  --surface: #ffffff;
+  --surface2: #ecebf2;
+  --fg: #1c1a22;
+  --muted: #6b6677;
+  --line: #dcd8e5;
+  --accent: #0e6f8c;
+  --accent-fg: #ffffff;
+  --ok: #17794f;
+  --ok-bg: #ddf3e8;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141118; --surface: #1e1a24; --surface2: #29232f; --fg: #f1eef5; --muted: #a39cb0;
+    --line: #372f40; --accent: #6cc4e0; --accent-fg: #06232d; --ok: #55d69a; --ok-bg: #17352a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141118; --surface: #1e1a24; --surface2: #29232f; --fg: #f1eef5; --muted: #a39cb0;
+  --line: #372f40; --accent: #6cc4e0; --accent-fg: #06232d; --ok: #55d69a; --ok-bg: #17352a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.4;
+  padding-block: 12px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  background: var(--bg); z-index: 10;
+}
+.wrap { max-width: 560px; margin: 0 auto; min-width: 0; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 {
+  font-family: var(--display); font-weight: 700; font-size: 30px; line-height: 1;
+  text-transform: uppercase; letter-spacing: 0.03em; margin: 0;
+}
+.status { font-size: 12px; color: var(--muted); margin-top: 4px; min-height: 16px; }
+.date {
+  background: var(--surface2); border: 1px solid var(--line); border-radius: 10px;
+  padding: 8px 10px; min-height: 40px; color: var(--fg);
+}
+
+.views { display: flex; gap: 6px; margin-top: 14px; }
+.views button {
+  flex: 1; min-height: 40px; border-radius: 10px; border: 1px solid var(--line);
+  background: transparent; color: var(--muted); font-weight: 600;
+}
+.views button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+.tabs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-top: 10px; }
+.tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  min-height: 54px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--surface); padding: 4px 2px; min-width: 0;
+}
+.tab b { font-family: var(--display); font-size: 18px; font-weight: 700; line-height: 1; text-transform: uppercase; letter-spacing: 0.03em; }
+.tab span { font-family: var(--display); font-size: 12px; font-weight: 500; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.tab[aria-selected="true"] span { color: var(--accent-fg); opacity: 0.85; }
+
+.day { margin-top: 18px; }
+h2 { font-family: var(--display); font-weight: 700; font-size: 30px; line-height: 1.05; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 4px 0 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.place { border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; font-size: 13px; font-weight: 500; color: var(--fg); }
+
+.prog {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--bg); padding-block: 10px; margin-top: 8px;
+}
+.prog-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bar { height: 6px; border-radius: 99px; background: var(--surface2); margin-top: 6px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width 0.25s; }
+
+.cards { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+.ex { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px; min-width: 0; }
+.ex-head { display: flex; gap: 12px; align-items: flex-start; }
+.ex-n {
+  flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--surface2);
+  display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 17px;
+}
+.ex.complete .ex-n { background: var(--ok-bg); color: var(--ok); }
+.ex h3 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.25; }
+.target { margin: 2px 0 0; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.target b { color: var(--fg); font-weight: 600; }
+.note { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+.last { margin: 10px 0 0; font-size: 14px; background: var(--surface2); border-radius: 10px; padding: 8px 10px; font-variant-numeric: tabular-nums; }
+.last em { font-style: normal; color: var(--muted); }
+.hint { margin: 6px 0 0; font-size: 14px; font-weight: 600; color: var(--accent); }
+
+.sets { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.set, .set-head { display: grid; gap: 8px; align-items: center; grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr) 46px; }
+.set.one, .set-head.one { grid-template-columns: 28px minmax(0, 1fr) 46px; }
+.set-head { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; text-align: center; }
+.set { border-radius: 12px; padding: 2px; transition: background 0.2s; }
+.set.done { background: var(--ok-bg); }
+.sn { text-align: center; font-family: var(--display); font-weight: 600; font-size: 18px; color: var(--muted); }
+.set input {
+  width: 100%; min-width: 0; height: 44px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface2); text-align: center; font-size: 18px; font-weight: 600;
+  font-variant-numeric: tabular-nums; color: var(--fg);
+}
+.set input::placeholder { color: var(--muted); opacity: 0.55; font-weight: 500; }
+.chk {
+  width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--line); background: transparent;
+  display: grid; place-items: center; color: transparent; justify-self: center; padding: 0;
+}
+.chk svg { width: 22px; height: 22px; }
+.set.done .chk { background: var(--ok); border-color: var(--ok); color: var(--bg); }
+.ex-actions { display: flex; gap: 8px; margin-top: 10px; }
+.ghost {
+  min-height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line);
+  background: transparent; color: var(--muted); font-size: 14px; font-weight: 600;
+}
+.ghost:disabled { opacity: 0.4; cursor: default; }
+
+details.howto { margin-top: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+details.howto summary { font-weight: 600; cursor: pointer; }
+details.howto ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+
+.sec-title { font-family: var(--display); font-weight: 700; font-size: 24px; text-transform: uppercase; letter-spacing: 0.03em; margin: 22px 0 8px; }
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 14px; padding: 18px 14px; color: var(--muted); }
+.list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.rec { display: flex; justify-content: space-between; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-variant-numeric: tabular-nums; }
+.rec span:first-child { min-width: 0; }
+.rec b { font-weight: 600; white-space: nowrap; }
+details.sess { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+details.sess summary { cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; gap: 12px; }
+details.sess summary span:last-child { color: var(--muted); font-weight: 500; white-space: nowrap; }
+details.sess dl { margin: 10px 0 0; display: grid; gap: 8px; }
+details.sess dt { font-weight: 600; font-size: 15px; }
+details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+
+#rest {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  background: var(--fg); color: var(--bg);
+  padding-top: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+#rest .in { max-width: 560px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+#rest .lbl { flex: 1; min-width: 0; font-size: 13px; opacity: 0.8; }
+#rest .lbl div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#restTime { font-family: var(--display); font-weight: 700; font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; }
+#rest button { min-height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid currentColor; background: transparent; color: var(--bg); font-weight: 600; }
+.mgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; margin-top: 12px; }
+.mf { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mf-l { font-weight: 600; font-size: 14px; }
+.mf em { font-style: normal; color: var(--muted); font-weight: 500; }
+.mf input {
+  width: 100%; min-width: 0; height: 44px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface2); text-align: center; font-size: 18px; font-weight: 600; color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.mf input::placeholder { color: var(--muted); opacity: 0.55; font-weight: 500; }
+.mf small { color: var(--muted); font-size: 12px; line-height: 1.3; }
+.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px; margin-top: 10px; }
+.chart svg { width: 100%; height: auto; display: block; }
+.c-line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.c-dot { fill: var(--accent); }
+.c-mens { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+.mens {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 46px; margin-top: 14px;
+  padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: transparent;
+  color: var(--fg); font-weight: 600; text-align: left;
+}
+.mens-dot { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--muted); }
+.mens[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.mens[aria-checked="true"] .mens-dot { background: var(--accent-fg); border-color: var(--accent-fg); }
+.c-grid { stroke: var(--line); stroke-width: 1; fill: none; }
+.c-txt { fill: var(--muted); font-size: 11px; font-family: var(--body); }
+.c-val { fill: var(--fg); font-size: 12px; font-weight: 600; font-family: var(--body); }
+.photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.slot { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.slot-l { font-size: 13px; font-weight: 600; color: var(--muted); }
+.pic { position: relative; aspect-ratio: 3 / 4; border-radius: 12px; border: 1px dashed var(--line); background: var(--surface2); overflow: hidden; display: grid; place-items: center; text-align: center; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; }
+.pic img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.pic.has { border-style: solid; }
+.pic input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.pic:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.slot .ghost { min-height: 34px; padding: 0 8px; font-size: 13px; }
+.cmp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.cmp figure { margin: 0; min-width: 0; }
+.cmp figcaption { font-size: 13px; font-weight: 600; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+.cmp .pic { cursor: default; border-style: solid; }
+.cmp-pose { margin: 14px 0 6px; font-family: var(--display); font-weight: 700; font-size: 18px; text-transform: uppercase; letter-spacing: 0.03em; }
+.sel { background: var(--surface2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-height: 40px; color: var(--fg); max-width: 100%; }
+.cmp-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0 8px; }
+.cal-head b { font-family: var(--display); font-size: 22px; text-transform: uppercase; letter-spacing: 0.03em; }
+.cal-head button { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: transparent; font-size: 22px; line-height: 1; color: var(--fg); }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-w { text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); padding: 4px 0; }
+.cal-e { min-height: 48px; }
+.cal-d { min-height: 48px; border-radius: 12px; border: 1px solid transparent; background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0; font-variant-numeric: tabular-nums; }
+.cal-d .n { font-size: 14px; font-weight: 600; line-height: 1; }
+.cal-d.today { border-color: var(--muted); }
+.cal-d.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.dot { display: block; width: 12px; height: 12px; border-radius: 50%; box-sizing: border-box; border: 2px solid transparent; }
+.dot.w { background: var(--accent); }
+.dot.c { border-color: var(--ok); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--muted); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.card-sum { display: grid; gap: 6px; margin-top: 12px; }
+.cardio-in { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.cardio-in input { width: 110px; min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface2); padding: 0 12px; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.crop-back { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.62); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 12px; }
+.crop { background: var(--bg); color: var(--fg); border-radius: 16px; padding: 14px; width: 100%; max-width: 420px; max-height: 100%; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+.crop h2 { margin: 0; font-family: var(--display); font-size: 22px; text-transform: uppercase; letter-spacing: 0.03em; }
+.crop canvas { display: block; margin: 0 auto; border-radius: 10px; touch-action: none; background: var(--surface2); cursor: grab; }
+.crop canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.crop .hint { margin: 0; font-size: 13px; color: var(--muted); }
+.crop-row { display: flex; align-items: center; gap: 10px; }
+.crop-row input[type=range] { flex: 1; min-width: 0; min-height: 44px; accent-color: var(--accent); }
+.crop-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.crop-actions .ghost { flex: 1; }
+.crop-actions .primary { flex: 2; min-height: 44px; border-radius: 12px; border: 0; background: var(--accent); color: var(--accent-fg); font-weight: 700; font-size: 16px; }
+.slot-btns { display: flex; flex-direction: column; gap: 6px; }
+.top-r { position: relative; display: flex; align-items: center; gap: 4px; }
+.more { width: 40px; height: 40px; border-radius: 10px; border: 1px solid transparent; background: transparent; color: var(--muted); display: grid; place-items: center; padding: 0; }
+.more[aria-expanded="true"] { border-color: var(--line); color: var(--fg); }
+.menu { position: absolute; right: 0; top: 46px; z-index: 30; min-width: 190px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2); }
+.menu button { display: block; width: 100%; text-align: left; min-height: 44px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; font-weight: 600; }
+.menu button:hover { background: var(--surface2); }
+.dlg-tx { width: 100%; min-height: 130px; max-height: 40vh; border-radius: 10px; border: 1px solid var(--line); background: var(--surface2); color: var(--fg); padding: 8px 10px; font: 12px/1.35 ui-monospace, Menlo, Consolas, monospace; resize: vertical; }
+.chk-row { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.crop input[type=file] { font-size: 13px; max-width: 100%; }
+.pick { margin-top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.pick h3 { margin: 0 0 4px; font-size: 16px; }
+.pick p { margin: 0 0 6px; color: var(--muted); font-size: 14px; }
+.pick-b { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 52px; margin-top: 8px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); text-align: left; }
+.pick-b b { font-size: 15px; }
+.pick-b span { font-size: 12px; color: var(--muted); }
+.pick-note { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--line); color: var(--muted); font-size: 13px; }
+.pick-note button { flex: none; min-height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--fg); }
+.warn { margin-top: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid #c0392b; background: rgba(192,57,43,.12); color: var(--fg); font-size: 14px; line-height: 1.4; }
+.extra-btn { width: 100%; min-height: 44px; margin-top: 8px; border-radius: 12px; border: 1px dashed var(--line); background: transparent; color: var(--muted); font-weight: 600; }
+.extra-btn[aria-pressed="true"] { border-style: solid; border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap" id="app"></div>
+<div id="rest" hidden>
+  <div class="in">
+    <div class="lbl"><div>Descanso</div><div id="restName"></div></div>
+    <span id="restTime">0:00</span>
+    <button type="button" id="restAdd">+30 s</button>
+    <button type="button" id="restSkip">Pular</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  /*APP*/var APP = {
+    name: "Treinos Pedro", key: "treinos-pedro", ls: "treinos-pedro:v1", days: ["ter", "qui", "sab", "dom"],
+    cardio: false, mens: false, swapFrom: "", restPick: true,
+    restMsg: "Dia de muay thai, sem musculação. Se quiser encaixar algo, deixe 6 horas de intervalo.",
+    howto: [
+      "Progressão: bateu o topo das reps em todas as séries, sobe a carga no treino seguinte.",
+      "Esforço: deixe 1 a 2 repetições de reserva nos compostos. Nos isoladores, a última série pode ir até a falha. No punho, 2 a 3 de reserva.",
+      "Descanso: 2 a 3 min nos compostos, 1 a 2 min nos demais. Superset de punho com 30 a 60 s.",
+      "Volume: rode 4 semanas. Se carga e repetições nos principais seguem iguais ou sobem, mantenha. Se caírem por 2 semanas, tire as séries novas. Semana leve a cada 6 a 8 semanas.",
+      "Muay thai: sem musculação nos dias de muay thai (6 horas de intervalo se quiser encaixar algo). Se a perna atrapalhar a segunda, reduza 2 a 4 séries das pernas.",
+      "Punho: carga moderada, controle e progressão lenta, com 1 repetição a mais por semana antes de subir a carga. Flexores e extensores sempre juntos. Dor no punho, pare.",
+      "Lombar: o stiff (sábado) e as costas (domingo) pesam na lombar. Se reclamar, troque o stiff por outro exercício de posterior.",
+      "Ao tocar no check de uma série vazia, o app copia a carga e as repetições da última vez."
+    ]
+  };/*ENDAPP*/
+  var LS = APP.ls, DAYS = APP.days;
+  var DAY_LABEL = { seg: "Seg", ter: "Ter", qua: "Qua", qui: "Qui", sex: "Sex", sab: "Sáb", dom: "Dom" };
+  var TAB_DAYS = ["seg", "ter", "qua", "qui", "sex", "sab", "dom"];
+
+  /*PLAN*/var PLAN = {
+    seg: { tab: "Muay thai", title: "Muay thai", sub: "Sem musculação hoje", place: "", rest: true, ex: [] },
+    qua: { tab: "Muay thai", title: "Muay thai", sub: "Sem musculação hoje", place: "", rest: true, ex: [] },
+    sex: { tab: "Muay thai", title: "Muay thai", sub: "Sem musculação hoje", place: "", rest: true, ex: [] },
+    ter: { tab: "Peito", title: "Peito + Tríceps", sub: "Peitoral, tríceps, antebraço e panturrilha", place: "", notes: [
+      "Peito completo: reto (meio), inclinado (superior), cross over alto (inferior e adução) e cross over baixo (superior alongado).",
+      "Paralela: tronco reto e cotovelos junto do corpo levam a carga para o tríceps. Inclinar para a frente leva mais para o peito.",
+      "Extensão acima da cabeça: em um estudo de 12 semanas (Maeo e colegas, com iniciantes), todas as cabeças do tríceps cresceram mais. A corda cobre a lateral e a medial.",
+      "Antebraço: flexores e extensores do punho em superset, carga moderada, parando 2 a 3 repetições antes da falha e descendo em 2 a 3 segundos. Nunca insista com dor no punho.",
+      "Panturrilha em pé 3 vezes por semana (terça, sábado e domingo)."
+    ], ex: [
+      { id: "supinoreto", name: "Supino reto", sets: 4, reps: [6, 10], rest: "comp" },
+      { id: "supinoinc", name: "Supino inclinado (banco a 30 a 45°)", sets: 3, reps: [8, 12], rest: "comp" },
+      { id: "crossalto", name: "Cross over polia alta", sets: 2, reps: [12, 15], rest: "iso" },
+      { id: "crossbaixo", name: "Cross over polia baixa, de baixo para cima", sets: 2, reps: [12, 15], rest: "iso" },
+      { id: "paralela", name: "Tríceps na paralela (tronco reto)", sets: 3, reps: [0, 999], repsText: "perto da falha", rest: "comp", note: "Cotovelos junto do corpo. Deixe o kg em branco se for só o peso do corpo." },
+      { id: "triextacima", name: "Extensão de tríceps acima da cabeça (polia)", sets: 3, reps: [10, 12], rest: "iso" },
+      { id: "triccorda", name: "Tríceps corda", sets: 2, reps: [12, 15], rest: "iso" },
+      { id: "roscapunho", name: "Rosca de punho (flexores)", sets: 2, reps: [15, 20], rest: "sup", note: "Superset com a extensão de punho. Pare 2 a 3 repetições antes da falha." },
+      { id: "extpunho", name: "Extensão de punho (extensores)", sets: 3, reps: [15, 20], rest: "sup", note: "Superset com a rosca de punho. Pare 2 a 3 repetições antes da falha." },
+      { id: "pantpe", name: "Panturrilha em pé", sets: 3, reps: [10, 15], rest: "iso" }
+    ] },
+    qui: { tab: "Ombros", title: "Ombros + Extras", sub: "Deltoides, peitoral superior, dorsais e antebraço", place: "", notes: [
+      "Ombros: desenvolvimento (anterior), elevação lateral e no cabo (lateral) e voador invertido (posterior).",
+      "Supino inclinado com halteres: 3 séries extras de peito. Se a quinta ficar longa, tire essas 3.",
+      "Costas 2 vezes por semana: o ganho vem de dividir o volume em 2 dias.",
+      "Rotação e desvio: comece com 1 a 2 kg, em movimento lento e sem dor.",
+      "A quinta tem cerca de 75 a 80 minutos (estimativa do plano)."
+    ], ex: [
+      { id: "desenv", name: "Desenvolvimento barra frente", sets: 4, reps: [8, 12], rest: "comp" },
+      { id: "elevlat", name: "Elevação lateral", sets: 4, reps: [12, 15], rest: "iso" },
+      { id: "elevlatcabo", name: "Elevação lateral no cabo", sets: 3, reps: [12, 15], rest: "iso" },
+      { id: "elevpost", name: "Elevação posterior (voador invertido)", sets: 3, reps: [12, 15], rest: "iso" },
+      { id: "supinoinchalt", name: "Supino inclinado com halteres", sets: 3, reps: [8, 12], rest: "comp", note: "kg de cada halter. Se a quinta ficar longa, tire essas 3 séries." },
+      { id: "puxneutra", name: "Puxador com pegada neutra no triângulo", sets: 3, reps: [10, 12], rest: "comp" },
+      { id: "bracoreto", name: "Puxada de braço reto na polia", sets: 3, reps: [12, 15], rest: "iso" },
+      { id: "rotacao", name: "Rotação do antebraço (pronação e supinação)", sets: 2, reps: [12, 12], rest: "iso", note: "Halter bem leve, de 1 a 2 kg, lento e sem dor." },
+      { id: "desvio", name: "Desvio radial e ulnar do punho", sets: 2, reps: [12, 12], rest: "iso", note: "Halter bem leve, de 1 a 2 kg, lento e sem dor." }
+    ] },
+    sab: { tab: "Pernas", title: "Pernas completas", sub: "Quadríceps, posteriores, glúteos, adutores e panturrilha", place: "", notes: [
+      "Glúteos: máximo no agachamento, búlgaro, stiff e elevação pélvica. Médio e mínimo na abdutora. Sem levantamento terra: o stiff já pesa na lombar.",
+      "Adutores: o magno já trabalha no agachamento fundo e no stiff, e a cadeira adutora cobre o restante. Sem a máquina, use adução na polia baixa.",
+      "Panturrilha: em pé pega mais o gastrocnêmio e sentada pega o sóleo. Pausa de 1 s embaixo nas duas.",
+      "Flexora sentada: em um estudo, gerou mais crescimento nos posteriores que cruzam o quadril. Se só houver a deitada, o stiff compensa.",
+      "É a sessão mais longa da semana (37 séries, estimativa de 100 minutos ou mais). Se o muay thai de segunda sofrer, corte a extensora para 2 e a abdutora para 2."
+    ], ex: [
+      { id: "agach", name: "Agachamento profundo", sets: 4, reps: [6, 10], rest: "comp", note: "Confirmar a carga inicial: o treino antigo tinha 5 kg anotado." },
+      { id: "legpress", name: "Leg press", sets: 3, reps: [10, 12], rest: "comp" },
+      { id: "bulgaro", name: "Agachamento búlgaro", sets: 2, reps: [8, 10], rest: "comp", note: "Séries por perna." },
+      { id: "stiff", name: "Stiff (RDL)", sets: 4, reps: [8, 10], rest: "comp", note: "Se a lombar reclamar, troque por outro exercício de posterior." },
+      { id: "flexora", name: "Flexora (sentada, se tiver)", sets: 5, reps: [10, 15], rest: "iso" },
+      { id: "extensora", name: "Cadeira extensora", sets: 3, reps: [12, 15], rest: "iso", note: "Se o dia ficar longo, corte para 2 séries." },
+      { id: "pelvica", name: "Elevação pélvica", sets: 3, reps: [8, 12], rest: "comp" },
+      { id: "abdutora", name: "Cadeira abdutora", sets: 3, reps: [12, 15], rest: "iso", note: "Se o muay thai de segunda sofrer, corte para 2 séries." },
+      { id: "adutora", name: "Cadeira adutora", sets: 3, reps: [10, 15], rest: "iso", note: "Sem a máquina, use adução na polia baixa." },
+      { id: "pantpe", name: "Panturrilha em pé", sets: 4, reps: [8, 12], rest: "iso", note: "A mais pesada da semana. Pausa de 1 s embaixo." },
+      { id: "pantsent", name: "Panturrilha sentada", sets: 3, reps: [10, 15], rest: "iso", note: "Pausa de 1 s embaixo." }
+    ] },
+    dom: { tab: "Costas", title: "Costas + Bíceps", sub: "Dorsais, trapézio, bíceps, braquiorradial e panturrilha", place: "", notes: [
+      "Costas: barra fixa e puxador alto frente (verticais), cavalinho e remada baixa com triângulo (horizontais). Puxe a barra para o peito, com leve inclinação do tronco.",
+      "Se passar de 10 reps na barra fixa, adicione carga.",
+      "Antebraço: a rosca inversa trabalha o braquiorradial junto com a rosca martelo.",
+      "Volume: 12 séries de costas (mais 6 na quinta) e 8 de bíceps."
+    ], ex: [
+      { id: "barrafixa", name: "Barra fixa", sets: 4, reps: [6, 10], rest: "comp", note: "Deixe o kg em branco se for só o peso do corpo. Se passar de 10 reps, adicione carga." },
+      { id: "puxador", name: "Puxador alto frente (barra ao peito)", sets: 3, reps: [10, 12], rest: "comp", note: "Puxe a barra para o peito, com leve inclinação do tronco." },
+      { id: "cavalinho", name: "Remada cavalinho", sets: 3, reps: [8, 10], rest: "comp" },
+      { id: "remadabaixa", name: "Remada baixa com triângulo", sets: 2, reps: [10, 12], rest: "comp" },
+      { id: "rosca", name: "Rosca direta W", sets: 3, reps: [8, 12], rest: "iso" },
+      { id: "martelo", name: "Rosca martelo", sets: 3, reps: [10, 12], rest: "iso" },
+      { id: "roscainc", name: "Rosca inclinada no banco (45 a 60 graus)", sets: 2, reps: [10, 12], rest: "iso" },
+      { id: "roscainv", name: "Rosca inversa (pegada pronada)", sets: 2, reps: [10, 12], rest: "iso" },
+      { id: "pantpe", name: "Panturrilha em pé", sets: 3, reps: [10, 15], rest: "iso", note: "Pausa de 1 s embaixo." }
+    ] }
+  };/*ENDPLAN*/
+
+  var NAMES = {}, TYPES = {};
+  /* exercícios de versões anteriores da ficha: mantêm o nome no histórico */
+  [["remadamaq", "Remada máquina"], ["extensorauni", "Cadeira extensora unilateral"]].forEach(function (x) { NAMES[x[0]] = x[1]; TYPES[x[0]] = "load"; });
+  Object.keys(PLAN).forEach(function (d) { PLAN[d].ex.forEach(function (e) { NAMES[e.id] = e.name; TYPES[e.id] = e.type || "load"; }); });
+
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function dayForDate(s) {
+    var p = s.split("-").map(Number), wd = new Date(p[0], p[1] - 1, p[2]).getDay();
+    return { 2: "ter", 3: "qua", 4: "qui", 6: "sab", 0: "dom", 1: "seg", 5: "sex" }[wd];
+  }
+  function shortDate(s) { var p = s.split("-"); return p[2] + "/" + p[1]; }
+  function fmt(n) { return n == null ? "" : String(n).replace(".", ","); }
+  function parse(v) { var n = parseFloat(String(v).replace(",", ".")); return isFinite(n) && n >= 0 ? n : null; }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function planReps(ex) { return ex.repsText || (ex.reps[0] === ex.reps[1] ? String(ex.reps[0]) : ex.reps[0] + "–" + ex.reps[1]); }
+  function restLabel(ex) { return ex.rest === "comp" ? "2–3 min" : ex.rest === "sup" ? "30–60 s" : "1–2 min"; }
+  function restSecs(ex) { return ex.rest === "comp" ? 150 : ex.rest === "sup" ? 45 : 90; }
+
+  var S = { menu: false, view: "treino", hm: { y: new Date().getFullYear(), m: new Date().getMonth() }, hsel: null, unlock: null, confirmDel: null, date: todayStr(), day: null, docs: {}, mode: "loading", pending: {}, writing: {}, dirty: {}, timers: {} };
+  S.day = dayForDate(S.date);
+  var store = null;
+  var app = document.getElementById("app");
+
+  function curId() { return S.date + "_" + S.day; }
+  function curDoc(create) {
+    var d = S.docs[curId()];
+    if (!d && create) d = S.docs[curId()] = { date: S.date, day: S.day, sets: {} };
+    return d;
+  }
+  function exOf(id) { return PLAN[S.day].ex.filter(function (e) { return e.id === id; })[0]; }
+  function setsFor(ex, create) {
+    var d = curDoc(create), arr = d && d.sets[ex.id];
+    if (!arr) {
+      arr = [];
+      for (var i = 0; i < ex.sets; i++) arr.push({ kg: null, reps: null, done: false });
+      if (create) d.sets[ex.id] = arr;
+    }
+    return arr;
+  }
+  function hasData(s) { return s.done || s.kg != null || s.reps != null; }
+  function dayFor(ds) {
+    var k = dayForDate(ds);
+    if (!APP.restPick || !PLAN[k].rest) return k;
+    var ids = Object.keys(S.docs);
+    for (var i = 0; i < ids.length; i++) {
+      var d = S.docs[ids[i]];
+      if (!d.kind && d.date === ds && PLAN[d.day] && !PLAN[d.day].rest && d.sets && Object.keys(d.sets).some(function (x) { return d.sets[x].some(hasData); })) return d.day;
+    }
+    return k;
+  }
+  var PICK_WD = { ter: "terça", qui: "quinta", sab: "sábado", dom: "domingo" };
+  function pickHtml() {
+    return '<div class="pick"><h3>Sem muay thai hoje?</h3><p>Escolha um dos seus treinos para fazer na academia. As cargas da última vez aparecem normalmente.</p>' +
+      APP.days.map(function (d) {
+        return '<button type="button" class="pick-b" data-day="' + d + '"><b>' + PLAN[d].title + '</b><span>Normalmente na ' + PICK_WD[d] + '</span></button>';
+      }).join("") + '</div>';
+  }
+  function pickNote() {
+    if (!APP.restPick || PLAN[S.day].rest || !PLAN[dayForDate(S.date)].rest) return "";
+    return '<div class="pick-note"><span>Dia de muay thai. Treino escolhido para a academia.</span><button type="button" data-act="pickback">Trocar</button></div>';
+  }
+
+  function lastFor(ex) {
+    var ids = Object.keys(S.docs).filter(function (id) { return id !== curId() && S.docs[id].date <= S.date; });
+    ids.sort(function (a, b) { return S.docs[b].date.localeCompare(S.docs[a].date) || b.localeCompare(a); });
+    for (var i = 0; i < ids.length; i++) {
+      var d = S.docs[ids[i]], arr = d.sets && d.sets[ex.id];
+      if (arr) {
+        var used = arr.filter(hasData);
+        if (used.length) return { date: d.date, sets: used };
+      }
+    }
+    return null;
+  }
+  function fmtSets(type, sets) {
+    if (type === "time") return sets.map(function (s) { return fmt(s.reps) || "–"; }).join(", ") + " s";
+    if (type === "bw") return sets.map(function (s) { return fmt(s.reps) || "–"; }).join(", ") + " reps";
+    var kgs = sets.map(function (s) { return s.kg; });
+    var same = kgs[0] != null && kgs.every(function (k) { return k === kgs[0]; });
+    if (same) return fmt(kgs[0]) + " kg · " + sets.map(function (s) { return fmt(s.reps) || "–"; }).join(", ") + " reps";
+    return sets.map(function (s) { return (fmt(s.kg) || "–") + "×" + (fmt(s.reps) || "–"); }).join(" · ");
+  }
+  function placeholders(ex, i, last) {
+    if (!last) return { kg: null, reps: null };
+    var s = last.sets[Math.min(i, last.sets.length - 1)];
+    return { kg: s.kg, reps: s.reps };
+  }
+
+  /* ---------- render ---------- */
+  var CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+  function head() {
+    var st = S.mode === "loading" ? "Conectando…" : S.mode === "local" ? (S.blocked ? "Sem salvar: o navegador bloqueou" : "Salvando só neste aparelho") : "Salvo na sua conta";
+    return '<div class="top"><div><h1>' + APP.name + '</h1><div class="status" id="status">' + st + '</div></div>' +
+      '<div class="top-r"><input class="date" type="date" id="date" aria-label="Data do treino" value="' + S.date + '">' + moreHtml() + '</div></div>' +
+      '<div class="views" role="group" aria-label="Seção">' +
+      '<button type="button" data-view="treino" aria-pressed="' + (S.view === "treino") + '">Treino</button>' +
+      '<button type="button" data-view="med" aria-pressed="' + (S.view === "med") + '">Medidas</button>' +
+      '<button type="button" data-view="fotos" aria-pressed="' + (S.view === "fotos") + '">Fotos</button>' +
+      '<button type="button" data-view="hist" aria-pressed="' + (S.view === "hist") + '">Histórico</button></div>' + (S.blocked ? warnHtml() : '');
+  }
+
+  function warnHtml() {
+    return '<div class="warn" role="alert"><b>Este navegador não está guardando os dados.</b> O que você preencher some ao fechar a página. Abra o arquivo direto no Chrome ou no Safari (não pelo WhatsApp nem pela pré-visualização do arquivo). Enquanto isso, use os três pontinhos no alto e toque em Exportar dados para guardar o texto.</div>';
+  }
+  function cardHtml(ex, n) {
+    var type = ex.type || "load", last = lastFor(ex), arr = setsFor(ex, false);
+    var unit = type === "time" ? " s" : "";
+    var one = type !== "load";
+    var h = '<section class="ex" data-ex="' + ex.id + '"><div class="ex-head"><span class="ex-n">' + n + '</span><div>' +
+      '<h3>' + ex.name + '</h3><p class="target"><b>' + ex.sets + ' × ' + planReps(ex) + unit + '</b> · descanso ' + restLabel(ex) + '</p>' +
+      (ex.note ? '<p class="note">' + ex.note + '</p>' : '') + '</div></div>';
+    if (last) {
+      h += '<p class="last"><em>Última vez (' + shortDate(last.date) + '):</em> ' + fmtSets(type, last.sets) + '</p>';
+      if (type === "load" && last.sets.length >= ex.sets && last.sets.every(function (s) { return s.reps >= ex.reps[1] && s.kg > 0; })) {
+        h += '<p class="hint">Você chegou ao topo da faixa. Hoje tente uma carga um pouco maior.</p>';
+      }
+    }
+    h += '<div class="sets"><div class="set-head' + (one ? " one" : "") + '"><span>Série</span>' +
+      (type === "load" ? '<span>kg</span><span>reps</span>' : '<span>' + (type === "time" ? "segundos" : "reps") + '</span>') + '<span></span></div>';
+    arr.forEach(function (s, i) {
+      var ph = placeholders(ex, i, last);
+      h += '<div class="set' + (one ? " one" : "") + (s.done ? " done" : "") + '" data-ex="' + ex.id + '" data-i="' + i + '"><span class="sn">' + (i + 1) + '</span>';
+      if (type === "load") {
+        h += '<input id="kg-' + ex.id + '-' + i + '" inputmode="decimal" autocomplete="off" data-f="kg" data-ex="' + ex.id + '" data-i="' + i + '" aria-label="Carga em kg, série ' + (i + 1) + '" placeholder="' + fmt(ph.kg) + '" value="' + fmt(s.kg) + '">';
+      }
+      h += '<input id="rp-' + ex.id + '-' + i + '" inputmode="decimal" autocomplete="off" data-f="reps" data-ex="' + ex.id + '" data-i="' + i + '" aria-label="' + (type === "time" ? "Segundos" : "Repetições") + ', série ' + (i + 1) + '" placeholder="' + fmt(ph.reps) + '" value="' + fmt(s.reps) + '">' +
+        '<button type="button" class="chk" data-act="chk" data-ex="' + ex.id + '" data-i="' + i + '" aria-pressed="' + s.done + '" aria-label="Série ' + (i + 1) + ' feita">' + CHECK + '</button></div>';
+    });
+    h += '</div><div class="ex-actions"><button type="button" class="ghost" data-act="add" data-ex="' + ex.id + '">+ série</button>' +
+      '<button type="button" class="ghost" data-act="rm" data-ex="' + ex.id + '"' + (arr.length <= 1 ? " disabled" : "") + '>− série</button></div></section>';
+    return h;
+  }
+
+  function renderTreino() {
+    var P = PLAN[S.day];
+    var tabs = TAB_DAYS.map(function (d) {
+      return '<button type="button" class="tab" role="tab" data-day="' + d + '" aria-selected="' + (d === S.day) + '"><b>' + DAY_LABEL[d] + '</b><span>' + PLAN[d].tab + '</span></button>';
+    }).join("");
+    return '<div class="tabs" role="tablist" aria-label="Dia do treino">' + tabs + '</div>' +
+      (PLAN.extra ? '<button type="button" class="extra-btn" data-day="extra" aria-pressed="' + (S.day === "extra") + '">Treino extra opcional: upper completo</button>' : '') +
+      '<div class="day"><h2>' + P.title + '</h2><p class="sub">' + (P.place ? '<span class="place">' + P.place + '</span>' : '') + '<span>' + P.sub + '</span></p></div>' +
+      (P.rest ? '<div class="empty" style="margin-top:12px">' + APP.restMsg + '</div>' + (APP.restPick ? pickHtml() : '') + (APP.cardio ? cardioCard() : '') : pickNote()) +
+      (P.rest ? '' : '<div class="prog"><div class="prog-row"><span>Séries feitas</span><span id="progText"></span></div><div class="bar"><i id="progFill"></i></div></div>') +
+      (P.rest ? '' : '<div class="cards">' + P.ex.map(function (e, i) { return cardHtml(e, i + 1); }).join("") + '</div>' + (APP.cardio ? cardioCard() : '')) +
+      (P.rest ? '' : dayNotes(P) + howtoHtml());
+  }
+
+  function listHtml(arr) { return arr.map(function (t) { return '<li>' + t + '</li>'; }).join(""); }
+  function howtoHtml() { return '<details class="howto"><summary>Como usar a ficha</summary><ul>' + listHtml(APP.howto) + '</ul></details>'; }
+  function dayNotes(P) { return P.notes && P.notes.length ? '<details class="howto"><summary>Notas do dia</summary><ul>' + listHtml(P.notes) + '</ul></details>' : ''; }
+  function sessionList() {
+    return Object.keys(S.docs).map(function (id) { return S.docs[id]; }).filter(function (d) {
+      return Object.keys(d.sets || {}).some(function (k) { return d.sets[k].some(hasData); });
+    }).sort(function (a, b) { return b.date.localeCompare(a.date) || DAYS.indexOf(b.day) - DAYS.indexOf(a.day); });
+  }
+  function renderHist() {
+    var sess = sessionList(), best = {};
+    sess.forEach(function (d) {
+      Object.keys(d.sets).forEach(function (k) {
+        if (TYPES[k] !== "load") return;
+        d.sets[k].forEach(function (s) {
+          if (s.done && s.kg > 0 && (!best[k] || s.kg > best[k].kg || (s.kg === best[k].kg && s.reps > best[k].reps))) best[k] = { kg: s.kg, reps: s.reps, date: d.date };
+        });
+      });
+    });
+    var bk = Object.keys(best).sort(function (a, b) { return NAMES[a].localeCompare(NAMES[b], "pt"); });
+    var h = '<h2 class="sec-title">Maiores cargas</h2>';
+    h += bk.length ? '<ul class="list">' + bk.map(function (k) {
+      return '<li class="rec"><span>' + NAMES[k] + '</span><b>' + fmt(best[k].kg) + ' kg × ' + (fmt(best[k].reps) || "–") + '</b></li>';
+    }).join("") + '</ul>' : '<div class="empty">Quando você marcar séries com carga, a maior de cada exercício aparece aqui.</div>';
+    return '<h2 class="sec-title" style="margin-top:8px">Calendário</h2>' + renderCal() + (S.hsel ? dayDetail(S.hsel) : '<p class="note" style="margin-top:10px">Toque em um dia para ver o que foi feito.</p>') + h;
+  }
+
+  /* ---------- peso e medidas ---------- */
+  var METRICS = [
+    { k: "peso", label: "Peso", unit: "kg", hint: "De manhã, em jejum, depois de ir ao banheiro." },
+    { k: "cintura", label: "Cintura", unit: "cm", hint: "Na altura do umbigo, sem apertar a fita." },
+    { k: "quadril", label: "Quadril", unit: "cm", hint: "Na parte mais larga do bumbum." },
+    { k: "coxa", label: "Coxa", unit: "cm", hint: "Perna direita, na parte mais larga." },
+    { k: "braco", label: "Braço", unit: "cm", hint: "Braço direito relaxado, no meio." },
+    { k: "pant", label: "Panturrilha", unit: "cm", hint: "Perna direita, na parte mais larga." }
+  ];
+  function medId() { return "m_" + S.date; }
+  function medDoc(create) {
+    var id = medId(), d = S.docs[id];
+    if (!d && create) d = S.docs[id] = { kind: "medidas", date: S.date, v: {} };
+    return d;
+  }
+  function medList() {
+    return Object.keys(S.docs).map(function (id) { return S.docs[id]; }).filter(function (d) {
+      return d.kind === "medidas" && d.v && Object.keys(d.v).some(function (k) { return d.v[k] != null; });
+    }).sort(function (a, b) { return a.date.localeCompare(b.date); });
+  }
+  function medPrev(k) {
+    var l = medList().filter(function (d) { return d.date < S.date && d.v[k] != null; });
+    return l.length ? l[l.length - 1].v[k] : null;
+  }
+  function delta(a, b) {
+    var d = Math.round((b - a) * 10) / 10;
+    return (d > 0 ? "+" : d < 0 ? "−" : "") + fmt(Math.abs(d));
+  }
+  function chartHtml() {
+    var pts = medList().filter(function (d) { return d.v.peso != null; });
+    if (pts.length < 2) return '<p class="note" style="margin-top:8px">O gráfico do peso aparece a partir da segunda pesagem.</p>';
+    var W = 320, H = 150, pl = 44, pr = 16, pt = 22, pb = 26;
+    var t = pts.map(function (d) { return new Date(d.date + "T00:00:00").getTime(); });
+    var t0 = t[0], t1 = t[t.length - 1];
+    var vs = pts.map(function (d) { return d.v.peso; });
+    var lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs);
+    var X = function (i) { return pl + (t1 === t0 ? 0.5 : (t[i] - t0) / (t1 - t0)) * (W - pl - pr); };
+    var Y = function (v) { return hi === lo ? pt + (H - pt - pb) / 2 : pt + (1 - (v - lo) / (hi - lo)) * (H - pt - pb); };
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Gráfico do peso ao longo do tempo">';
+    s += '<line class="c-grid" x1="' + pl + '" x2="' + (W - pr) + '" y1="' + Y(hi) + '" y2="' + Y(hi) + '"/>';
+    s += '<text class="c-txt" x="' + (pl - 6) + '" y="' + (Y(hi) + 4) + '" text-anchor="end">' + fmt(hi) + '</text>';
+    if (hi !== lo) {
+      s += '<line class="c-grid" x1="' + pl + '" x2="' + (W - pr) + '" y1="' + Y(lo) + '" y2="' + Y(lo) + '"/>';
+      s += '<text class="c-txt" x="' + (pl - 6) + '" y="' + (Y(lo) + 4) + '" text-anchor="end">' + fmt(lo) + '</text>';
+    }
+    s += '<polyline class="c-line" points="' + pts.map(function (d, i) { return X(i) + "," + Y(d.v.peso); }).join(" ") + '"/>';
+    pts.forEach(function (d, i) {
+      s += '<circle class="c-dot' + (d.mens ? " c-mens" : "") + '" cx="' + X(i) + '" cy="' + Y(d.v.peso) + '" r="' + (i === pts.length - 1 ? 5 : 3.5) + '"/>';
+    });
+    var n = pts.length - 1, ly = Y(vs[n]) - 10 < 10 ? Y(vs[n]) + 19 : Y(vs[n]) - 10;
+    s += '<text class="c-val" x="' + X(n) + '" y="' + ly + '" text-anchor="end">' + fmt(vs[n]) + ' kg</text>';
+    s += '<text class="c-txt" x="' + X(0) + '" y="' + (H - 8) + '" text-anchor="start">' + shortDate(pts[0].date) + '</text>';
+    s += '<text class="c-txt" x="' + X(n) + '" y="' + (H - 8) + '" text-anchor="end">' + shortDate(pts[n].date) + '</text></svg>';
+    return '<div class="chart">' + s + '</div>' + (pts.some(function (d) { return d.mens; }) ? '<p class="note" style="margin-top:6px">Círculo vazado: dia em que você estava menstruada.</p>' : '');
+  }
+  function medSummaryHtml() {
+    var list = medList();
+    if (!list.length) return '<div class="empty">Anote o peso e as medidas de hoje. Depois da segunda anotação aparecem a variação e o gráfico do peso.</div>';
+    var rows = "";
+    METRICS.forEach(function (m) {
+      var pts = list.filter(function (d) { return d.v[m.k] != null; });
+      if (!pts.length) return;
+      var first = pts[0].v[m.k], last = pts[pts.length - 1].v[m.k];
+      rows += '<li class="rec"><span>' + m.label + '</span><b>' + (pts.length > 1 ? fmt(first) + " → " + fmt(last) + " " + m.unit + " · " + delta(first, last) + " " + m.unit : fmt(last) + " " + m.unit) + '</b></li>';
+    });
+    var h = '<h2 class="sec-title">Desde o início</h2><ul class="list">' + rows + '</ul>' +
+      (list.some(function (d) { return d.mens; }) ? '<p class="note" style="margin-top:8px">Na menstruação o peso e as medidas podem oscilar por retenção de líquido, e isso varia de pessoa para pessoa. Compare anotações de fases parecidas do ciclo.</p>' : '') + chartHtml() + '<h2 class="sec-title">Anotações</h2><div class="list">';
+    list.slice().reverse().forEach(function (d) {
+      var dl = "";
+      METRICS.forEach(function (m) { if (d.v[m.k] != null) dl += "<dt>" + m.label + "</dt><dd>" + fmt(d.v[m.k]) + " " + m.unit + "</dd>"; });
+      if (d.mens) dl += "<dt>Ciclo</dt><dd>Menstruada</dd>";
+      h += '<details class="sess"><summary><span>' + shortDate(d.date) + '</span><span>' + (d.v.peso != null ? fmt(d.v.peso) + " kg" : "só medidas") + (d.mens ? " · menstruada" : "") + '</span></summary><dl>' + dl + '</dl></details>';
+    });
+    return h + '</div>';
+  }
+  function renderMed() {
+    var d = medDoc(false), v = d ? d.v : {};
+    var h = '<div class="day"><h2>Peso e medidas</h2><p class="sub">Anote a cada 1 a 2 semanas, no mesmo dia, no mesmo horário e com a mesma roupa.</p></div>' +
+      '<section class="ex" style="margin-top:14px"><h3>Medidas de ' + shortDate(S.date) + '</h3><div class="mgrid">';
+    METRICS.forEach(function (m) {
+      h += '<label class="mf" for="m-' + m.k + '"><span class="mf-l">' + m.label + ' <em>' + m.unit + '</em></span>' +
+        '<input id="m-' + m.k + '" inputmode="decimal" autocomplete="off" data-m="' + m.k + '" placeholder="' + fmt(medPrev(m.k)) + '" value="' + fmt(v[m.k]) + '">' +
+        '<small>' + m.hint + '</small></label>';
+    });
+    return h + '</div>' + (APP.mens ? '<button type="button" class="mens" role="switch" aria-checked="' + !!(d && d.mens) + '" data-act="mens"><span class="mens-dot"></span>Estou menstruada hoje</button>' : '') + '</section><div id="medSummary">' + medSummaryHtml() + '</div>';
+  }
+
+  /* ---------- fotos: início fixo + atual (substitui a anterior) ---------- */
+  var POSES = [{ k: "frente", l: "Frente" }, { k: "lado", l: "Lado" }, { k: "costas", l: "Costas" }];
+  var MAXCHARS = 190000;
+  function fid(set, pose) { return "p_" + set + "_" + pose; }
+  function foto(set, pose) { var d = S.docs[fid(set, pose)]; return d && d.img ? d : null; }
+  function medNear(date) {
+    var t = new Date(date + "T00:00:00").getTime(), best = null, bd = 1e9;
+    medList().forEach(function (d) {
+      var diff = Math.abs(new Date(d.date + "T00:00:00").getTime() - t) / 864e5;
+      if (diff < bd) { bd = diff; best = d; }
+    });
+    return bd <= 7 ? best : null;
+  }
+  function longDate(s) { var p = s.split("-"); return p[2] + "/" + p[1] + "/" + p[0]; }
+  function compress(file) {
+    return new Promise(function (res, rej) {
+      function done(src, w, h) {
+        var sizes = [900, 720, 560];
+        for (var i = 0; i < sizes.length; i++) {
+          var sc = Math.min(1, sizes[i] / Math.max(w, h)), cw = Math.round(w * sc), ch = Math.round(h * sc);
+          var c = document.createElement("canvas"); c.width = cw; c.height = ch;
+          c.getContext("2d").drawImage(src, 0, 0, cw, ch);
+          var q = 0.8, u;
+          do { u = c.toDataURL("image/jpeg", q); q -= 0.08; } while (u.length > MAXCHARS && q > 0.35);
+          if (u.length <= MAXCHARS) { res(u); return; }
+        }
+        rej(new Error("grande"));
+      }
+      function fallback() {
+        var im = new Image(), url = URL.createObjectURL(file);
+        im.onload = function () { URL.revokeObjectURL(url); done(im, im.naturalWidth, im.naturalHeight); };
+        im.onerror = function () { URL.revokeObjectURL(url); rej(new Error("img")); };
+        im.src = url;
+      }
+      if (window.createImageBitmap) {
+        createImageBitmap(file, { imageOrientation: "from-image" }).then(function (b) { done(b, b.width, b.height); }, fallback);
+      } else fallback();
+    });
+  }
+  function handlePhoto(input) {
+    var parts = input.dataset.photo.split(":"), set = parts[0], pose = parts[1], f = input.files && input.files[0];
+    if (!f) return;
+    if (S.mode !== "db") { setStatus("As fotos só são salvas quando o diário está conectado à sua conta."); input.value = ""; return; }
+    openCrop({ set: set, pose: pose, file: f, date: S.date });
+    input.value = "";
+  }
+  function persistPhoto(set, pose, date, url) {
+    var id = fid(set, pose), prev = S.docs[id];
+    setStatus("Salvando foto…");
+    S.docs[id] = { kind: "foto", set: set, pose: pose, date: date, img: url, updatedAt: new Date().toISOString() };
+    return Promise.resolve(store.save(id, clone(S.docs[id]))).then(function () {
+      S.unlock = null; setStatus("Salvo na sua conta"); render();
+    }, function () {
+      if (prev) S.docs[id] = prev; else delete S.docs[id];
+      setStatus("Não foi possível salvar a foto. Pode ser que o espaço do diário tenha acabado."); render();
+    });
+  }
+
+  /* ---------- editor de enquadramento ---------- */
+  var CR = null;
+  function loadSrc(opt) {
+    return new Promise(function (res, rej) {
+      function viaImg(u, rev) {
+        var im = new Image();
+        im.onload = function () { if (rev) URL.revokeObjectURL(u); res({ img: im, w: im.naturalWidth, h: im.naturalHeight }); };
+        im.onerror = function () { if (rev) URL.revokeObjectURL(u); rej(new Error("img")); };
+        im.src = u;
+      }
+      if (opt.url) { viaImg(opt.url, false); return; }
+      if (window.createImageBitmap) {
+        createImageBitmap(opt.file, { imageOrientation: "from-image" }).then(function (b) { res({ img: b, w: b.width, h: b.height }); }, function () { viaImg(URL.createObjectURL(opt.file), true); });
+      } else viaImg(URL.createObjectURL(opt.file), true);
+    });
+  }
+  function openCrop(opt) {
+    setStatus("Abrindo foto…");
+    loadSrc(opt).then(function (src) {
+      setStatus("");
+      var other = opt.set === "atual" ? foto("inicio", opt.pose) : null, ov = null;
+      var start = function () { buildCrop(opt, src, ov); };
+      if (other) { var im = new Image(); im.onload = function () { ov = im; start(); }; im.onerror = start; im.src = other.img; } else start();
+    }, function () { setStatus("Não consegui ler essa imagem. Tente outra foto."); });
+  }
+  function buildCrop(opt, src, ovImg) {
+    var W = Math.round(Math.max(200, Math.min(360, window.innerWidth - 56, (window.innerHeight - 290) * 3 / 4))), H = Math.round(W * 4 / 3);
+    CR = { opt: opt, src: src, rot: 0, z: 1, tx: 0, ty: 0, ov: false, ovImg: ovImg, W: W, H: H, ptrs: {}, last: document.activeElement };
+    var back = document.createElement("div");
+    back.className = "crop-back"; back.id = "cropper";
+    back.innerHTML = '<div class="crop" role="dialog" aria-modal="true" aria-labelledby="cropT"><h2 id="cropT">Enquadrar foto</h2>' +
+      '<canvas id="cropC" tabindex="0" width="' + W * 2 + '" height="' + H * 2 + '" style="width:' + W + 'px;height:' + H + 'px" aria-label="Área da foto. Arraste para mover, use as setas do teclado para mover e + e - para aproximar."></canvas>' +
+      '<p class="hint">Arraste para mover. Use o controle abaixo ou dois dedos para aproximar. A foto sai em 3:4, como nas comparações.</p>' +
+      '<div class="crop-row"><label for="cropZ" class="hint">Zoom</label><input type="range" id="cropZ" min="50" max="400" value="100" aria-label="Zoom"></div>' +
+      (ovImg ? '<label class="hint" style="display:flex;align-items:center;gap:8px;min-height:44px"><input type="checkbox" id="cropOv"> Mostrar a foto do início por cima para alinhar</label>' : '') +
+      '<div class="crop-actions"><button type="button" class="ghost" id="cropRot">Girar</button><button type="button" class="ghost" id="cropReset">Centralizar</button></div>' +
+      '<div class="crop-actions"><button type="button" class="ghost" id="cropCancel">Cancelar</button><button type="button" class="primary" id="cropSave">Salvar foto</button></div></div>';
+    document.body.appendChild(back);
+    document.body.style.overflow = "hidden";
+    var cv = document.getElementById("cropC");
+    cv.addEventListener("pointerdown", function (e) { cv.setPointerCapture(e.pointerId); CR.ptrs[e.pointerId] = { x: e.clientX, y: e.clientY }; cv.style.cursor = "grabbing"; });
+    cv.addEventListener("pointermove", function (e) {
+      var pt = CR.ptrs[e.pointerId]; if (!pt) return;
+      var ids = Object.keys(CR.ptrs);
+      if (ids.length === 1) { CR.tx += e.clientX - pt.x; CR.ty += e.clientY - pt.y; }
+      else if (ids.length === 2) {
+        var o = CR.ptrs[ids[0] === String(e.pointerId) ? ids[1] : ids[0]], d0 = Math.hypot(pt.x - o.x, pt.y - o.y), d1 = Math.hypot(e.clientX - o.x, e.clientY - o.y);
+        if (d0 > 0) CR.z = Math.min(4, Math.max(0.5, CR.z * d1 / d0));
+        CR.tx += (e.clientX - pt.x) / 2; CR.ty += (e.clientY - pt.y) / 2;
+        document.getElementById("cropZ").value = Math.round(CR.z * 100);
+      }
+      pt.x = e.clientX; pt.y = e.clientY; drawCrop();
+    });
+    function up(e) { delete CR.ptrs[e.pointerId]; cv.style.cursor = "grab"; }
+    cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+    cv.addEventListener("wheel", function (e) { e.preventDefault(); setZoom(CR.z * Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
+    cv.addEventListener("keydown", function (e) {
+      var st = e.shiftKey ? 30 : 10, k = e.key, used = true;
+      if (k === "ArrowLeft") CR.tx -= st; else if (k === "ArrowRight") CR.tx += st; else if (k === "ArrowUp") CR.ty -= st; else if (k === "ArrowDown") CR.ty += st;
+      else if (k === "+" || k === "=") setZoom(CR.z * 1.1); else if (k === "-") setZoom(CR.z / 1.1); else used = false;
+      if (used) { e.preventDefault(); drawCrop(); }
+    });
+    document.getElementById("cropZ").addEventListener("input", function (e) { setZoom(parseInt(e.target.value, 10) / 100); });
+    document.getElementById("cropRot").addEventListener("click", function () { CR.rot = (CR.rot + 90) % 360; CR.z = 1; CR.tx = 0; CR.ty = 0; document.getElementById("cropZ").value = 100; drawCrop(); });
+    document.getElementById("cropReset").addEventListener("click", function () { CR.z = 1; CR.tx = 0; CR.ty = 0; document.getElementById("cropZ").value = 100; drawCrop(); });
+    var ovc = document.getElementById("cropOv"); if (ovc) ovc.addEventListener("change", function (e) { CR.ov = e.target.checked; drawCrop(); });
+    document.getElementById("cropCancel").addEventListener("click", closeCrop);
+    document.getElementById("cropSave").addEventListener("click", saveCrop);
+    back.addEventListener("keydown", function (e) { if (e.key === "Escape") closeCrop(); });
+    cv.focus(); drawCrop();
+  }
+  function setZoom(z) { CR.z = Math.min(4, Math.max(0.5, z)); var r = document.getElementById("cropZ"); if (r) r.value = Math.round(CR.z * 100); drawCrop(); }
+  function closeCrop() {
+    var b = document.getElementById("cropper"); if (b) b.remove();
+    document.body.style.overflow = "";
+    var last = CR && CR.last; CR = null;
+    if (last && last.focus && document.contains(last)) last.focus();
+  }
+  function paintCrop(ctx, k, editor) {
+    var r = CR.rot, sw = r % 180 ? CR.src.h : CR.src.w, sh = r % 180 ? CR.src.w : CR.src.h, W = CR.W, H = CR.H;
+    var s = Math.min(W / sw, H / sh) * CR.z;
+    var mx = sw * s / 2 + W / 2 - 40, my = sh * s / 2 + H / 2 - 40;
+    CR.tx = Math.max(-mx, Math.min(mx, CR.tx)); CR.ty = Math.max(-my, Math.min(my, CR.ty));
+    ctx.save(); ctx.scale(k, k);
+    ctx.fillStyle = "#e8e8ea"; ctx.fillRect(0, 0, W, H);
+    ctx.save(); ctx.translate(W / 2 + CR.tx, H / 2 + CR.ty); ctx.rotate(r * Math.PI / 180); ctx.scale(s, s);
+    ctx.drawImage(CR.src.img, -CR.src.w / 2, -CR.src.h / 2); ctx.restore();
+    if (editor) {
+      if (CR.ov && CR.ovImg) {
+        var oi = CR.ovImg, os = Math.min(W / oi.naturalWidth, H / oi.naturalHeight);
+        ctx.globalAlpha = 0.4; ctx.drawImage(oi, (W - oi.naturalWidth * os) / 2, (H - oi.naturalHeight * os) / 2, oi.naturalWidth * os, oi.naturalHeight * os); ctx.globalAlpha = 1;
+      }
+      [[0, "rgba(0,0,0,0.35)"], [1, "rgba(255,255,255,0.85)"]].forEach(function (pass) {
+        ctx.strokeStyle = pass[1]; ctx.lineWidth = 1; ctx.beginPath();
+        for (var i = 1; i < 3; i++) { ctx.moveTo(W * i / 3 + pass[0], 0); ctx.lineTo(W * i / 3 + pass[0], H); ctx.moveTo(0, H * i / 3 + pass[0]); ctx.lineTo(W, H * i / 3 + pass[0]); }
+        ctx.stroke();
+      });
+    }
+    ctx.restore();
+  }
+  function drawCrop() { var cv = document.getElementById("cropC"); if (cv && CR) paintCrop(cv.getContext("2d"), 2, true); }
+  function saveCrop() {
+    var o = CR.opt, sizes = [1200, 960, 800, 640], url = null;
+    for (var i = 0; i < sizes.length && !url; i++) {
+      var oh = sizes[i], ow = Math.round(oh * 3 / 4), c = document.createElement("canvas"); c.width = ow; c.height = oh;
+      paintCrop(c.getContext("2d"), ow / CR.W, false);
+      var q = 0.82, u;
+      do { u = c.toDataURL("image/jpeg", q); q -= 0.08; } while (u.length > MAXCHARS && q > 0.35);
+      if (u.length <= MAXCHARS) url = u;
+    }
+    closeCrop();
+    if (!url) { setStatus("A foto ficou grande demais. Aproxime ou tente outra."); return; }
+    persistPhoto(o.set, o.pose, o.date, url);
+  }
+  function removePhoto(id) {
+    var prev = S.docs[id]; if (!prev) return;
+    delete S.docs[id];
+    Promise.resolve(store.del(id)).then(function () { setStatus("Foto removida"); render(); }, function () {
+      S.docs[id] = prev; setStatus("Não foi possível remover. Tente de novo."); render();
+    });
+  }
+  /* fotos salvas por data na versão anterior: a mais antiga vira início, a mais recente vira atual */
+  function migrateFotos() {
+    var old = Object.keys(S.docs).filter(function (id) { var d = S.docs[id]; return d.kind === "foto" && !d.set; });
+    if (!old.length) return;
+    var m = {}; old.forEach(function (id) { m[S.docs[id].date] = 1; });
+    var ds = Object.keys(m).sort();
+    old.forEach(function (id) {
+      var d = S.docs[id], set = d.date === ds[0] ? "inicio" : (d.date === ds[ds.length - 1] ? "atual" : null), nid = set && fid(set, d.pose);
+      if (set && !S.docs[nid]) {
+        var nd = { kind: "foto", set: set, pose: d.pose, date: d.date, img: d.img, updatedAt: d.updatedAt || new Date().toISOString() };
+        S.docs[nid] = nd;
+        Promise.resolve(store.save(nid, clone(nd))).then(function () { delete S.docs[id]; return store.del(id); }, function () { delete S.docs[nid]; }).catch(function () {});
+      } else if (!set) {
+        delete S.docs[id]; Promise.resolve(store.del(id)).catch(function () {});
+      }
+    });
+  }
+  function slotHtml(set, p) {
+    var f = foto(set, p.k), id = fid(set, p.k), locked = set === "inicio" && f && S.unlock !== id;
+    var inner = f ? '<img src="' + f.img + '" alt="Foto de ' + p.l.toLowerCase() + ' (' + (set === "inicio" ? "início" : "atual") + ') de ' + shortDate(f.date) + '">' : '<span>Tocar para<br>enviar</span>';
+    var box = locked ? '<div class="pic has">' + inner + '</div>' :
+      '<label class="pic' + (f ? " has" : "") + '">' + inner + '<input type="file" accept="image/*" data-photo="' + set + ':' + p.k + '" aria-label="' + (f ? "Trocar" : "Enviar") + ' foto de ' + p.l.toLowerCase() + ' (' + (set === "inicio" ? "início" : "atual") + ')"></label>';
+    var btn = "";
+    if (f) btn += '<button type="button" class="ghost" data-act="adjfoto" data-id="' + id + '">Enquadrar</button>';
+    if (f && set === "inicio") btn += '<button type="button" class="ghost" data-act="unlock" data-id="' + id + '">' + (locked ? "Substituir" : "Cancelar") + '</button>';
+    if (f && set === "atual") btn += '<button type="button" class="ghost" data-act="delfoto" data-id="' + id + '">' + (S.confirmDel === id ? "Confirmar" : "Remover") + '</button>';
+    return '<div class="slot"><span class="slot-l">' + p.l + (f ? " · " + shortDate(f.date) : "") + '</span>' + box + (btn ? '<div class="slot-btns">' + btn + '</div>' : '') + '</div>';
+  }
+  function cmpHtml() {
+    var h = "", any = false, ma = null, mb = null;
+    POSES.forEach(function (p) {
+      var a = foto("inicio", p.k), b = foto("atual", p.k);
+      if (!a || !b) return;
+      any = true;
+      if (!ma) { ma = medNear(a.date); mb = medNear(b.date); }
+      h += '<h3 class="cmp-pose">' + p.l + '</h3><div class="cmp"><figure><figcaption>Início · ' + shortDate(a.date) + '</figcaption><div class="pic has"><img src="' + a.img + '" alt="' + p.l + ' no início"></div></figure>' +
+        '<figure><figcaption>Atual · ' + shortDate(b.date) + '</figcaption><div class="pic has"><img src="' + b.img + '" alt="' + p.l + ' atual"></div></figure></div>';
+    });
+    if (!any) {
+      return '<div class="empty">Envie as fotos de início e as fotos atuais da mesma pose (frente, lado ou costas) para ver a comparação aqui. Depois, a cada sessão nova, as fotos atuais substituem as anteriores.</div>';
+    }
+    var rows = "";
+    if (ma && mb && ma !== mb) {
+      METRICS.forEach(function (m) {
+        if (ma.v[m.k] != null && mb.v[m.k] != null) {
+          rows += '<li class="rec"><span>' + m.label + '</span><b>' + fmt(ma.v[m.k]) + " → " + fmt(mb.v[m.k]) + " " + m.unit + " · " + delta(ma.v[m.k], mb.v[m.k]) + " " + m.unit + '</b></li>';
+        }
+      });
+    }
+    if (rows) h += '<h2 class="sec-title">Medidas no mesmo período</h2><ul class="list">' + rows + '</ul><p class="note" style="margin-top:8px">Usei as anotações de medidas mais próximas de cada data (até 7 dias de diferença).</p>';
+    else h += '<p class="note" style="margin-top:12px">Anote o peso e as medidas na aba Medidas perto das datas das fotos para ver os números ao lado delas.</p>';
+    return h;
+  }
+  function renderFotos() {
+    return '<div class="day"><h2>Fotos de progresso</h2><p class="sub">Mesma luz, mesma distância, mesma roupa e de pé, relaxada.</p></div>' +
+      '<section class="ex" style="margin-top:14px"><h3>Início</h3>' +
+      '<p class="note">Ponto de partida fixo. Antes de enviar, escolha lá em cima a data em que as fotos foram tiradas. Para trocar, toque em Substituir.</p>' +
+      '<div class="photo-grid">' + POSES.map(function (p) { return slotHtml("inicio", p); }).join("") + '</div></section>' +
+      '<section class="ex" style="margin-top:12px"><h3>Atual</h3>' +
+      '<p class="note">Cada vez que enviar uma foto nova, ela substitui a atual anterior. A data usada é a do campo lá em cima (' + longDate(S.date) + ').</p>' +
+      '<div class="photo-grid">' + POSES.map(function (p) { return slotHtml("atual", p); }).join("") + '</div>' +
+      '<p class="note" style="margin-top:10px">As fotos ficam na sua área privada do diário e são reduzidas para caber no espaço.</p></section>' +
+      '<h2 class="sec-title">Comparação</h2><div id="cmpBox">' + cmpHtml() + '</div>';
+  }
+
+  /* ---------- cardio ---------- */
+  var CARDIO_GOAL = 110;
+  var WD = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  var MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  function pad2(n) { return String(n).padStart(2, "0"); }
+  function dstr(d) { return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
+  function weekDates(ds) {
+    var p = ds.split("-").map(Number), off = (new Date(p[0], p[1] - 1, p[2]).getDay() + 6) % 7, out = [];
+    for (var i = 0; i < 7; i++) out.push(dstr(new Date(p[0], p[1] - 1, p[2] - off + i)));
+    return out;
+  }
+  function cardioMin(ds) { var d = S.docs["c_" + ds]; return d && d.min > 0 ? d.min : 0; }
+  function cardioSumHtml() {
+    var wk = weekDates(S.date), total = 0, n = 0, parts = [];
+    wk.forEach(function (ds) {
+      var m = cardioMin(ds);
+      if (m > 0) { total += m; n++; parts.push(WD[new Date(ds + "T00:00:00").getDay()] + " " + fmt(m)); }
+    });
+    var avg = n ? Math.round((total / n) * 10) / 10 : 0, pct = Math.min(100, (total / CARDIO_GOAL) * 100);
+    return '<div class="prog-row"><span>Semana de ' + shortDate(wk[0]) + ' a ' + shortDate(wk[6]) + '</span><span>' + fmt(total) + ' de ' + CARDIO_GOAL + ' min</span></div>' +
+      '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
+      '<ul class="list" style="margin-top:10px"><li class="rec"><span>Sessões na semana</span><b>' + n + '</b></li>' +
+      '<li class="rec"><span>Média por sessão</span><b>' + (n ? fmt(avg) + " min" : "–") + '</b></li>' +
+      '<li class="rec"><span>Dias</span><b style="white-space:normal;text-align:right">' + (parts.length ? parts.join(" · ") : "–") + '</b></li></ul>';
+  }
+  function cardioCard() {
+    var m = cardioMin(S.date);
+    return '<section class="ex" style="margin-top:12px"><h3>Cardio na bike</h3>' +
+      '<p class="note">Minutos de ' + shortDate(S.date) + '. A meta de ' + CARDIO_GOAL + ' min por semana é a sugestão do plano, em intensidade moderada.</p>' +
+      '<div class="cardio-in"><input id="cardioMin" inputmode="numeric" autocomplete="off" data-cardio="1" aria-label="Minutos de cardio" placeholder="0" value="' + (m ? fmt(m) : "") + '"><span>min</span></div>' +
+      '<div class="card-sum" id="cardioSum">' + cardioSumHtml() + '</div></section>';
+  }
+
+  /* ---------- calendário do histórico ---------- */
+  function trainedDates() {
+    var m = {};
+    Object.keys(S.docs).forEach(function (id) {
+      var d = S.docs[id];
+      if (d.kind === "cardio") { if (d.min > 0) (m[d.date] = m[d.date] || {}).c = d.min; return; }
+      if (d.kind) return;
+      if (d.sets && Object.keys(d.sets).some(function (k) { return d.sets[k].some(hasData); })) (m[d.date] = m[d.date] || {}).w = true;
+    });
+    return m;
+  }
+  function dayDetail(ds) {
+    var docs = Object.keys(S.docs).map(function (id) { return S.docs[id]; }).filter(function (d) {
+      return !d.kind && d.date === ds && d.sets && Object.keys(d.sets).some(function (k) { return d.sets[k].some(hasData); });
+    });
+    var cm = cardioMin(ds), p = ds.split("-").map(Number), wd = WD[new Date(p[0], p[1] - 1, p[2]).getDay()];
+    var h = '<h2 class="sec-title">' + wd + " " + shortDate(ds) + '</h2>';
+    if (!docs.length && !cm) h += '<div class="empty">Nenhum treino registrado neste dia.</div>';
+    else {
+      h += '<div class="list">';
+      docs.forEach(function (d) {
+        var done = 0, rows = "";
+        Object.keys(d.sets).forEach(function (k) {
+          var used = d.sets[k].filter(hasData);
+          done += d.sets[k].filter(function (x) { return x.done; }).length;
+          if (used.length) rows += "<dt>" + (NAMES[k] || k) + "</dt><dd>" + fmtSets(TYPES[k], used) + "</dd>";
+        });
+        h += '<details class="sess" open><summary><span>' + PLAN[d.day].title + '</span><span>' + done + " séries</span></summary><dl>" + rows + "</dl></details>";
+      });
+      if (cm) h += '<div class="rec"><span>Cardio na bike</span><b>' + fmt(cm) + ' min</b></div>';
+      h += '</div>';
+    }
+    return h + '<div class="ex-actions"><button type="button" class="ghost" data-act="goday" data-date="' + ds + '">Abrir este dia</button></div>';
+  }
+  function renderCal() {
+    var y = S.hm.y, mo = S.hm.m, first = new Date(y, mo, 1), off = (first.getDay() + 6) % 7, nd = new Date(y, mo + 1, 0).getDate();
+    var td = trainedDates(), today = todayStr(), cw = 0, cc = 0, cany = 0, h;
+    h = '<div class="cal-head"><button type="button" data-act="calprev" aria-label="Mês anterior">‹</button><b>' + MONTHS[mo] + " " + y + '</b><button type="button" data-act="calnext" aria-label="Próximo mês">›</button></div>';
+    h += '<div class="cal" role="group" aria-label="Calendário de treinos">' + ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map(function (w) { return '<span class="cal-w">' + w + '</span>'; }).join("");
+    for (var i = 0; i < off; i++) h += '<span class="cal-e"></span>';
+    for (var d = 1; d <= nd; d++) {
+      var ds = y + "-" + pad2(mo + 1) + "-" + pad2(d), info = td[ds] || {};
+      if (info.w) cw++; if (info.c) cc++; if (info.w || info.c) cany++;
+      var lab = d + " de " + MONTHS[mo].toLowerCase() + (info.w ? ", treino de musculação" : "") + (info.c ? ", cardio" : "") + (!info.w && !info.c ? ", sem treino" : "");
+      h += '<button type="button" class="cal-d' + (ds === today ? " today" : "") + (ds === S.hsel ? " sel" : "") + '" data-act="calday" data-date="' + ds + '" aria-label="' + lab + '"><span class="n">' + d + '</span><i class="dot' + (info.w ? " w" : "") + (info.c ? " c" : "") + '"></i></button>';
+    }
+    h += '</div><div class="legend"><span><i class="dot w"></i>Musculação</span>' + (APP.cardio ? '<span><i class="dot c"></i>Cardio</span>' : '') + '</div>';
+    h += '<p class="note" style="margin-top:8px"><b>' + cany + '</b> ' + (cany === 1 ? "dia treinado" : "dias treinados") + ' em ' + MONTHS[mo].toLowerCase() + (APP.cardio ? ' (' + cw + ' de musculação, ' + cc + ' de cardio).' : '.') + '</p>';
+    return h;
+  }
+
+  function render() {
+    app.innerHTML = head() + (S.view === "treino" ? renderTreino() : S.view === "med" ? renderMed() : S.view === "fotos" ? renderFotos() : renderHist());
+    if (S.view === "treino") updateProgress();
+  }
+
+  function updateProgress() {
+    var total = 0, done = 0;
+    PLAN[S.day].ex.forEach(function (ex) {
+      var arr = setsFor(ex, false), d = arr.filter(function (s) { return s.done; }).length;
+      total += arr.length; done += d;
+      var el = app.querySelector('.ex[data-ex="' + ex.id + '"]');
+      if (el) el.classList.toggle("complete", d === arr.length);
+    });
+    var t = document.getElementById("progText"), f = document.getElementById("progFill");
+    if (t) t.textContent = done + " de " + total;
+    if (f) f.style.width = (total ? (done / total) * 100 : 0) + "%";
+  }
+
+  function setStatus(txt) { var el = document.getElementById("status"); if (el) el.textContent = txt; }
+
+  /* ---------- salvar ---------- */
+  function touch() { var d = curDoc(true); d.updatedAt = new Date().toISOString(); scheduleSave(curId()); }
+  function scheduleSave(id) {
+    if (S.mode === "loading") { S.pending[id] = true; return; }
+    clearTimeout(S.timers[id]);
+    S.timers[id] = setTimeout(function () { saveDoc(id); }, 500);
+  }
+  function saveDoc(id) {
+    if (S.writing[id]) { S.dirty[id] = true; return Promise.resolve(); }
+    S.writing[id] = true; setStatus("Salvando…");
+    var run = function () {
+      S.dirty[id] = false;
+      return Promise.resolve(store.save(id, clone(S.docs[id]))).then(function () {
+        if (S.dirty[id]) return run();
+      });
+    };
+    return run().then(function () {
+      setStatus(S.mode === "local" ? "Salvo só neste aparelho" : "Salvo na sua conta");
+    }, function () {
+      S.blocked = true; setStatus("Não está salvando. Exporte seus dados pelos três pontinhos.");
+    }).then(function () { S.writing[id] = false; });
+  }
+  function flushAll() {
+    Object.keys(S.timers).forEach(function (id) {
+      if (S.timers[id]) { clearTimeout(S.timers[id]); S.timers[id] = 0; if (S.docs[id]) saveDoc(id); }
+    });
+  }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") flushAll(); });
+
+  function initStore() {
+    var local = function () {
+      var docs = {}, blocked = false;
+      try { docs = JSON.parse(localStorage.getItem(LS) || "{}"); } catch (e) {}
+      try { localStorage.setItem(LS + ":t", "1"); localStorage.removeItem(LS + ":t"); } catch (e) { blocked = true; }
+      return {
+        mode: "local", docs: docs, blocked: blocked,
+        save: function () {
+          return new Promise(function (res, rej) {
+            try { localStorage.setItem(LS, JSON.stringify(S.docs)); res(); } catch (e) { rej(e); }
+          });
+        },
+        del: function () {
+          return new Promise(function (res, rej) {
+            try { localStorage.setItem(LS, JSON.stringify(S.docs)); res(); } catch (e) { rej(e); }
+          });
+        }
+      };
+    };
+    var c = window.claude;
+    if (!c || !c.use) return Promise.resolve(local());
+    return Promise.all([c.use("db"), c.use("user")]).then(function (r) {
+      var db = r[0], user = r[1];
+      if (!db || !user) return local();
+      return user.id().then(function (uid) {
+        if (!uid) return local();
+        var col = db.collection("data/users/" + uid);
+        return col.get().then(function (snap) {
+          var docs = {};
+          snap.docs.forEach(function (d) { docs[d.id] = clone(d.data()); });
+          return { mode: "db", docs: docs, save: function (id, data) { return col.doc(id).set(data); }, del: function (id) { return col.doc(id).delete(); } };
+        });
+      });
+    }).catch(function () { return local(); });
+  }
+
+  /* ---------- exportar e importar (menu discreto de três pontos) ---------- */
+  var DOTS = '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>';
+  function moreHtml() {
+    return '<button type="button" class="more" data-act="more" aria-label="Mais opções" aria-haspopup="menu" aria-expanded="' + !!S.menu + '">' + DOTS + '</button>' +
+      (S.menu ? '<div class="menu" role="menu"><button type="button" role="menuitem" data-act="exp">Exportar dados</button><button type="button" role="menuitem" data-act="imp">Importar dados</button></div>' : '');
+  }
+  document.addEventListener("click", function (e) { if (S.menu && !(e.target.closest && e.target.closest(".top-r"))) { S.menu = false; render(); } });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && S.menu) { S.menu = false; render(); } });
+
+  function $(id) { return document.getElementById(id); }
+  function dlgClose() { var b = $("dlg"); if (b) b.remove(); if (!CR) document.body.style.overflow = ""; }
+  function dlgOpen(html) {
+    dlgClose();
+    var back = document.createElement("div"); back.className = "crop-back"; back.id = "dlg";
+    back.innerHTML = '<div class="crop" role="dialog" aria-modal="true">' + html + '</div>';
+    document.body.appendChild(back); document.body.style.overflow = "hidden";
+    back.addEventListener("keydown", function (e) { if (e.key === "Escape") dlgClose(); });
+    return back;
+  }
+
+  function buildExport(withPhotos) {
+    var docs = {}, n = { s: 0, m: 0, c: 0, f: 0, fx: 0 };
+    Object.keys(S.docs).forEach(function (id) {
+      var d = S.docs[id]; if (!d || typeof d !== "object") return;
+      if (d.kind === "foto") { if (!withPhotos) { n.fx++; return; } n.f++; }
+      else if (d.kind === "medidas") n.m++;
+      else if (d.kind === "cardio") n.c++;
+      else if (!d.kind) n.s++;
+      docs[id] = d;
+    });
+    return { text: JSON.stringify({ app: APP.key, schema: 2, exportedAt: new Date().toISOString(), docs: docs }), n: n };
+  }
+  function sumText(n) {
+    var p = [n.s + (n.s === 1 ? " sessão de treino" : " sessões de treino"), n.m + (n.m === 1 ? " anotação de medidas" : " anotações de medidas")];
+    if (APP.cardio) p.push(n.c + (n.c === 1 ? " dia de cardio" : " dias de cardio"));
+    if (n.f) p.push(n.f + (n.f === 1 ? " foto" : " fotos"));
+    return p.join(", ") + (n.fx ? ". " + n.fx + (n.fx === 1 ? " foto não incluída." : " fotos não incluídas.") : ".");
+  }
+  function copyFrom(ta, msgEl) {
+    var text = ta.value;
+    ta.focus(); ta.select(); try { ta.setSelectionRange(0, text.length); } catch (e) {}
+    var done = function (ok) { msgEl.textContent = ok ? "Copiado. Cole em um lugar seguro, como o bloco de notas." : "Não consegui copiar sozinho. O texto está selecionado: use Copiar do seu aparelho."; };
+    var legacy = function () { var ok = false; try { ok = document.execCommand("copy"); } catch (e) {} done(ok); };
+    var p = null;
+    try { if (navigator.clipboard && navigator.clipboard.writeText) p = navigator.clipboard.writeText(text); } catch (e) { p = null; }
+    if (p && p.then) p.then(function () { done(true); }, legacy); else legacy();
+  }
+  function openExport() {
+    if (!store) { setStatus("Ainda conectando. Tente de novo em instantes."); return; }
+    dlgOpen('<h2>Exportar dados</h2><p class="hint" id="expSum"></p>' +
+      '<label class="hint chk-row"><input type="checkbox" id="expPh"> Incluir as fotos (deixa o texto bem maior)</label>' +
+      '<textarea class="dlg-tx" id="expTx" readonly spellcheck="false" aria-label="Dados exportados"></textarea>' +
+      '<div class="crop-actions"><button type="button" class="ghost" id="dlgX">Fechar</button><button type="button" class="primary" id="expCopy">Copiar tudo</button></div>' +
+      '<p class="hint" id="expMsg" role="status">Guarde o texto copiado em um lugar seguro, como o bloco de notas.</p>');
+    function fill() { var r = buildExport($("expPh").checked); $("expTx").value = r.text; $("expSum").textContent = sumText(r.n); }
+    $("expPh").addEventListener("change", fill);
+    $("expCopy").addEventListener("click", function () { copyFrom($("expTx"), $("expMsg")); });
+    $("dlgX").addEventListener("click", dlgClose);
+    fill(); $("expCopy").focus();
+  }
+
+  var SWAP_DAY = { sab: "dom", dom: "sab" };
+  function cleanNum(v) { return v == null ? null : parse(v); }
+  function cleanDoc(id, d) {
+    if (!d || typeof d !== "object" || Array.isArray(d)) return null;
+    var m, out;
+    if ((m = /^(\d{4}-\d{2}-\d{2})_([a-z]+)$/.exec(id))) {
+      if (d.kind || !PLAN[m[2]] || !d.sets || typeof d.sets !== "object") return null;
+      var sets = {};
+      Object.keys(d.sets).forEach(function (k) {
+        var arr = d.sets[k]; if (!Array.isArray(arr)) return;
+        sets[k] = arr.slice(0, 40).map(function (s) { s = s && typeof s === "object" ? s : {}; return { kg: cleanNum(s.kg), reps: cleanNum(s.reps), done: !!s.done }; });
+      });
+      out = { date: m[1], day: m[2], sets: sets };
+    } else if ((m = /^m_(\d{4}-\d{2}-\d{2})$/.exec(id))) {
+      if (d.kind !== "medidas" || !d.v || typeof d.v !== "object") return null;
+      var v = {};
+      METRICS.forEach(function (x) { var n = cleanNum(d.v[x.k]); if (n != null) v[x.k] = n; });
+      out = { kind: "medidas", date: m[1], v: v };
+      if (d.mens) out.mens = true;
+    } else if ((m = /^c_(\d{4}-\d{2}-\d{2})$/.exec(id))) {
+      var mn = cleanNum(d.min);
+      if (d.kind !== "cardio" || mn == null || mn > 1440) return null;
+      out = { kind: "cardio", date: m[1], min: Math.round(mn) };
+    } else if ((m = /^p_(inicio|atual)_(frente|lado|costas)$/.exec(id))) {
+      if (d.kind !== "foto" || typeof d.img !== "string" || d.img.indexOf("data:image/jpeg;base64,") !== 0 || d.img.length > 200000) return null;
+      out = { kind: "foto", set: m[1], pose: m[2], date: typeof d.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d.date) ? d.date : todayStr(), img: d.img };
+    } else return null;
+    if (typeof d.updatedAt === "string") out.updatedAt = d.updatedAt;
+    return out;
+  }
+  function parseImport(text) {
+    var t = String(text || "").trim();
+    if (!t) return { err: "Cole o texto exportado ou escolha o arquivo." };
+    var a = t.search(/[\[{]/), z = Math.max(t.lastIndexOf("}"), t.lastIndexOf("]"));
+    if (a < 0) return { err: "Não achei dados nesse texto." };
+    if (z < a) return { err: "Não consegui ler o texto. Ele precisa ser o JSON completo, sem cortes." };
+    var j; try { j = JSON.parse(t.slice(a, z + 1)); } catch (e) { return { err: "Não consegui ler o texto. Ele precisa ser o JSON completo, sem cortes." }; }
+    var schema = 0, map = {};
+    function fromList(list) { list.forEach(function (it) { if (it && typeof it === "object" && typeof it.id === "string") map[it.id] = it.data && typeof it.data === "object" ? it.data : it; }); }
+    if (Array.isArray(j)) fromList(j);
+    else if (j && typeof j === "object") {
+      if (j.app && j.app !== APP.key) return { err: "Esses dados são de outro app (" + String(j.app).slice(0, 40) + "). Nada foi importado." };
+      schema = +j.schema || 0;
+      if (Array.isArray(j.docs)) fromList(j.docs);
+      else { var src = j.docs && typeof j.docs === "object" ? j.docs : j; Object.keys(src).forEach(function (id) { if (src[id] && typeof src[id] === "object") map[id] = src[id]; }); }
+    } else return { err: "Não achei dados nesse texto." };
+    var items = {}, bad = 0, total = 0;
+    Object.keys(map).forEach(function (id) { total++; var c = cleanDoc(id, map[id]); if (c) items[id] = c; else bad++; });
+    if (!total) return { err: "Não achei nenhuma anotação nesse texto." };
+    return { items: items, bad: bad, total: total, schema: schema };
+  }
+  function planImport(res, opts) {
+    var out = {}, c = { s: [0, 0], m: [0, 0], c: [0, 0], f: [0, 0], conv: 0, keep: 0, nofoto: 0 };
+    Object.keys(res.items).forEach(function (id) {
+      var d = res.items[id], nid = id;
+      if (opts.convert && APP.swapFrom && !d.kind && d.date < APP.swapFrom && SWAP_DAY[d.day]) { d = clone(d); d.day = SWAP_DAY[d.day]; nid = d.date + "_" + d.day; c.conv++; }
+      var k = d.kind === "foto" ? "f" : d.kind === "medidas" ? "m" : d.kind === "cardio" ? "c" : "s";
+      if (k === "f" && store.mode !== "db") { c.nofoto++; return; }
+      var exists = !!S.docs[nid];
+      if (exists && !opts.over) { c.keep++; return; }
+      c[k][exists ? 1 : 0]++;
+      out[nid] = d;
+    });
+    return { list: Object.keys(out).map(function (id) { return [id, out[id]]; }), c: c };
+  }
+  function previewText(res, pl, opts) {
+    var c = pl.c, p = [];
+    function line(label, a) { if (a[0] || a[1]) p.push(label + ": " + a[0] + " novas" + (a[1] ? ", " + a[1] + " substituindo as que já existem" : "")); }
+    line("Sessões de treino", c.s); line("Medidas", c.m); if (APP.cardio) line("Cardio", c.c); line("Fotos", c.f);
+    var s = p.length ? p.join(". ") + "." : "Nada para importar.";
+    if (c.keep) s += " " + c.keep + (c.keep === 1 ? " item já existe aqui e será mantido." : " itens já existem aqui e serão mantidos.");
+    if (c.conv) s += " " + c.conv + (c.conv === 1 ? " sessão de sábado ou domingo anterior a 21/11 será trocada" : " sessões de sábado ou domingo anteriores a 21/11 serão trocadas") + " para a nova ordem.";
+    if (c.nofoto) s += " " + c.nofoto + " foto(s) ficaram de fora porque o app não está conectado à sua conta.";
+    if (res.bad) s += " " + res.bad + (res.bad === 1 ? " item não reconhecido foi ignorado." : " itens não reconhecidos foram ignorados.");
+    return s;
+  }
+  function applyImport(list, done) {
+    var prev = {}, ok = 0, fail = 0, i = 0;
+    list.forEach(function (it) { prev[it[0]] = S.docs[it[0]]; });
+    function undo(id) { if (prev[id]) S.docs[id] = prev[id]; else delete S.docs[id]; }
+    if (store.mode === "local") {
+      list.forEach(function (it) { S.docs[it[0]] = it[1]; });
+      Promise.resolve(store.save()).then(function () { done(list.length, 0); }, function () { list.forEach(function (it) { undo(it[0]); }); done(0, list.length); });
+      return;
+    }
+    (function next() {
+      if (i >= list.length) { done(ok, fail); return; }
+      var id = list[i][0], doc = list[i][1]; i++;
+      S.docs[id] = doc;
+      Promise.resolve(store.save(id, clone(doc))).then(function () { ok++; }, function () { fail++; undo(id); }).then(next);
+    })();
+  }
+  function openImport() {
+    if (!store) { setStatus("Ainda conectando. Tente de novo em instantes."); return; }
+    dlgOpen('<h2>Importar dados</h2><p class="hint">Cole o texto exportado (deste app ou do app antigo) ou escolha o arquivo. Por padrão, nada que já existe aqui é apagado.</p>' +
+      '<textarea class="dlg-tx" id="impTx" spellcheck="false" placeholder="Cole aqui" aria-label="Dados para importar"></textarea>' +
+      '<input type="file" id="impFile" accept=".json,.txt,application/json,text/plain" aria-label="Escolher arquivo">' +
+      '<div id="impOpts"></div>' +
+      '<div class="crop-actions"><button type="button" class="ghost" id="dlgX">Fechar</button><button type="button" class="ghost" id="impCheck">Conferir</button><button type="button" class="primary" id="impGo" disabled>Importar</button></div>' +
+      '<p class="hint" id="impMsg" role="status"></p>');
+    var res = null, msg = $("impMsg"), go = $("impGo");
+    function opts() { var o = $("impOver"), v = $("impConv"); return { over: !!(o && o.checked), convert: !!(v && v.checked) }; }
+    function refresh() {
+      if (!res) return;
+      var o = opts(), pl = planImport(res, o);
+      msg.textContent = previewText(res, pl, o);
+      go.disabled = !pl.list.length;
+    }
+    function check() {
+      res = parseImport($("impTx").value);
+      if (res.err) { $("impOpts").innerHTML = ""; msg.textContent = res.err; go.disabled = true; res = null; return; }
+      var h = '<label class="hint chk-row"><input type="checkbox" id="impOver"> Se já existir aqui, substituir pelo que está sendo importado</label>';
+      if (APP.swapFrom && res.schema < 2) h += '<label class="hint chk-row"><input type="checkbox" id="impConv" checked> Dados do app antigo: trocar sábado e domingo anteriores a 21/11 para a nova ordem</label>';
+      $("impOpts").innerHTML = h;
+      var a = $("impOver"), b = $("impConv");
+      if (a) a.addEventListener("change", refresh); if (b) b.addEventListener("change", refresh);
+      refresh();
+    }
+    $("impTx").addEventListener("input", function () { res = null; go.disabled = true; $("impOpts").innerHTML = ""; msg.textContent = ""; });
+    $("impFile").addEventListener("change", function (e) {
+      var f = e.target.files && e.target.files[0]; if (!f) return;
+      var r = new FileReader();
+      r.onload = function () { $("impTx").value = String(r.result || ""); check(); };
+      r.onerror = function () { msg.textContent = "Não consegui ler o arquivo."; };
+      r.readAsText(f);
+    });
+    $("impCheck").addEventListener("click", check);
+    $("dlgX").addEventListener("click", dlgClose);
+    go.addEventListener("click", function () {
+      if (!res) return;
+      var pl = planImport(res, opts());
+      if (!pl.list.length) { msg.textContent = "Nada novo para importar."; return; }
+      go.disabled = true; $("impCheck").disabled = true; msg.textContent = "Importando…";
+      applyImport(pl.list, function (ok, fail) {
+        $("impCheck").disabled = false; res = null;
+        msg.textContent = "Importado: " + ok + (ok === 1 ? " item." : " itens.") + (fail ? " " + fail + " não puderam ser salvos, tente de novo." : "");
+        var active = document.activeElement; if (!(active && active.matches && active.matches("input[data-f]"))) render();
+        setStatus(store.mode === "local" ? "Salvo só neste aparelho" : "Salvo na sua conta");
+      });
+    });
+    $("impTx").focus();
+  }
+
+  /* ---------- descanso ---------- */
+  var rest = { end: 0, iv: 0, hide: 0 };
+  var restEl = document.getElementById("rest"), restTime = document.getElementById("restTime"), restName = document.getElementById("restName");
+  function tickRest() {
+    var left = Math.ceil((rest.end - Date.now()) / 1000);
+    if (left <= 0) {
+      clearInterval(rest.iv); rest.iv = 0;
+      restTime.textContent = "0:00"; restName.textContent = "Pronto para a próxima série";
+      try { if (navigator.vibrate) navigator.vibrate(200); } catch (e) {}
+      rest.hide = setTimeout(function () { restEl.hidden = true; }, 8000);
+      return;
+    }
+    restTime.textContent = Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0");
+  }
+  function startRest(ex) {
+    clearTimeout(rest.hide); clearInterval(rest.iv);
+    rest.end = Date.now() + restSecs(ex) * 1000;
+    restName.textContent = ex.name; restEl.hidden = false;
+    tickRest(); rest.iv = setInterval(tickRest, 250);
+  }
+  document.getElementById("restAdd").addEventListener("click", function () {
+    if (!rest.iv) { rest.end = Date.now(); }
+    rest.end += 30000; clearTimeout(rest.hide);
+    if (!rest.iv) rest.iv = setInterval(tickRest, 250);
+    tickRest();
+  });
+  document.getElementById("restSkip").addEventListener("click", function () {
+    clearInterval(rest.iv); rest.iv = 0; clearTimeout(rest.hide); restEl.hidden = true;
+  });
+
+  /* ---------- eventos ---------- */
+  app.addEventListener("input", function (e) {
+    var t = e.target;
+    if (t.dataset && t.dataset.cardio) {
+      var cm = parse(t.value), cid = "c_" + S.date;
+      if (cm == null && !S.docs[cid]) return;
+      S.docs[cid] = { kind: "cardio", date: S.date, min: cm == null ? 0 : Math.round(cm), updatedAt: new Date().toISOString() };
+      scheduleSave(cid);
+      var cs = document.getElementById("cardioSum"); if (cs) cs.innerHTML = cardioSumHtml();
+      return;
+    }
+    if (t.matches && t.matches("input[data-m]")) {
+      var md = medDoc(true); md.v[t.dataset.m] = parse(t.value); md.updatedAt = new Date().toISOString(); scheduleSave(medId()); return;
+    }
+    if (!t.matches || !t.matches("input[data-f]")) return;
+    var ex = exOf(t.dataset.ex); if (!ex) return;
+    setsFor(ex, true)[+t.dataset.i][t.dataset.f] = parse(t.value);
+    touch();
+  });
+  app.addEventListener("change", function (e) {
+    if (e.target.dataset && e.target.dataset.photo) { handlePhoto(e.target); return; }
+    if (e.target.dataset && e.target.dataset.m) { var ms = document.getElementById("medSummary"); if (ms) ms.innerHTML = medSummaryHtml(); return; }
+    if (e.target.id === "date") {
+      S.date = e.target.value || todayStr(); S.day = S.day === "extra" ? "extra" : dayFor(S.date); render();
+    }
+  });
+  app.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.view) { S.view = b.dataset.view; S.confirmDel = null; render(); return; }
+    if (b.dataset.day) { S.day = b.dataset.day; render(); return; }
+    var act = b.dataset.act; if (!act) return;
+    if (act === "pickback") { S.day = dayForDate(S.date); render(); return; }
+    if (act === "more") { S.menu = !S.menu; render(); return; }
+    if (act === "exp") { S.menu = false; render(); openExport(); return; }
+    if (act === "imp") { S.menu = false; render(); openImport(); return; }
+    if (act === "calprev" || act === "calnext") {
+      var dm = act === "calprev" ? -1 : 1, nm = new Date(S.hm.y, S.hm.m + dm, 1);
+      S.hm = { y: nm.getFullYear(), m: nm.getMonth() }; S.hsel = null; render(); return;
+    }
+    if (act === "calday") { S.hsel = S.hsel === b.dataset.date ? null : b.dataset.date; render(); return; }
+    if (act === "goday") {
+      S.date = b.dataset.date; S.day = dayForDate(S.date);
+      Object.keys(S.docs).forEach(function (id) { var d = S.docs[id]; if (!d.kind && d.date === S.date && d.sets && PLAN[d.day] && Object.keys(d.sets).some(function (k) { return d.sets[k].some(hasData); })) S.day = d.day; }); S.view = "treino"; render(); window.scrollTo(0, 0); return; }
+    if (act === "adjfoto") {
+      var ad = S.docs[b.dataset.id];
+      if (ad && ad.img) openCrop({ set: ad.set, pose: ad.pose, url: ad.img, date: ad.date });
+      return;
+    }
+    if (act === "unlock") { S.unlock = S.unlock === b.dataset.id ? null : b.dataset.id; render(); return; }
+    if (act === "delfoto") {
+      var pid = b.dataset.id;
+      if (S.confirmDel === pid) { S.confirmDel = null; removePhoto(pid); }
+      else { S.confirmDel = pid; render(); }
+      return;
+    }
+    if (act === "mens") {
+      var mdoc = medDoc(true); mdoc.mens = !mdoc.mens; mdoc.updatedAt = new Date().toISOString(); scheduleSave(medId());
+      b.setAttribute("aria-checked", String(mdoc.mens));
+      var msum = document.getElementById("medSummary"); if (msum) msum.innerHTML = medSummaryHtml();
+      return;
+    }
+    var ex = exOf(b.dataset.ex); if (!ex) return;
+    var arr = setsFor(ex, true), type = ex.type || "load";
+    if (act === "add") {
+      arr.push({ kg: null, reps: null, done: false }); touch(); render(); return;
+    }
+    if (act === "rm") {
+      if (arr.length > 1) { arr.pop(); touch(); render(); } return;
+    }
+    if (act === "chk") {
+      var i = +b.dataset.i, s = arr[i];
+      s.done = !s.done;
+      if (s.done) {
+        var ph = placeholders(ex, i, lastFor(ex));
+        if (type === "load" && s.kg == null && ph.kg != null) { s.kg = ph.kg; var k = document.getElementById("kg-" + ex.id + "-" + i); if (k) k.value = fmt(s.kg); }
+        if (s.reps == null && ph.reps != null) { s.reps = ph.reps; var r = document.getElementById("rp-" + ex.id + "-" + i); if (r) r.value = fmt(s.reps); }
+        startRest(ex);
+      }
+      var row = b.closest(".set"); row.classList.toggle("done", s.done); b.setAttribute("aria-pressed", String(s.done));
+      touch(); updateProgress();
+    }
+  });
+
+  render();
+  initStore().then(function (st) {
+    store = st; S.mode = st.mode; S.blocked = !!st.blocked;
+    Object.keys(st.docs).forEach(function (id) { if (!S.docs[id]) S.docs[id] = st.docs[id]; });
+    if (S.day === dayForDate(S.date)) S.day = dayFor(S.date);
+    if (S.mode === "db") migrateFotos();
+    var active = document.activeElement, typing = active && active.matches && active.matches("input[data-f]");
+    if (!typing) render(); else setStatus(S.mode === "local" ? "Salvando só neste aparelho" : "Salvo na sua conta");
+    Object.keys(S.pending).forEach(function (id) { scheduleSave(id); });
+    S.pending = {};
+  });
+})();
+</script>
