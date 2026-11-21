@@ -673,7 +673,8 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
   function handlePhoto(input) {
     var parts = input.dataset.photo.split(":"), set = parts[0], pose = parts[1], f = input.files && input.files[0];
     if (!f) return;
-    if (S.mode !== "db") { setStatus("As fotos só são salvas quando o diário está conectado à sua conta."); input.value = ""; return; }
+    if (S.mode === "local" && S.blocked) { setStatus("O navegador não está guardando dados, então a foto não seria salva."); input.value = ""; return; }
+    if (S.mode !== "db" && S.mode !== "local") { setStatus("Ainda conectando. Tente de novo em instantes."); input.value = ""; return; }
     openCrop({ set: set, pose: pose, file: f, date: S.date });
     input.value = "";
   }
@@ -682,10 +683,10 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
     setStatus("Salvando foto…");
     S.docs[id] = { kind: "foto", set: set, pose: pose, date: date, img: url, updatedAt: new Date().toISOString() };
     return Promise.resolve(store.save(id, clone(S.docs[id]))).then(function () {
-      S.unlock = null; setStatus("Salvo na sua conta"); render();
+      S.unlock = null; render(); setStatus(baseStatus()); bkSoon();
     }, function () {
       if (prev) S.docs[id] = prev; else delete S.docs[id];
-      setStatus("Não foi possível salvar a foto. Pode ser que o espaço do diário tenha acabado."); render();
+      render(); setStatus(S.mode === "local" ? "Não foi possível salvar a foto. O espaço do navegador pode ter acabado. Seus treinos continuam salvos." : "Não foi possível salvar a foto. Pode ser que o espaço do diário tenha acabado.");
     });
   }
 
@@ -871,7 +872,7 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
       '<section class="ex" style="margin-top:12px"><h3>Atual</h3>' +
       '<p class="note">Cada vez que enviar uma foto nova, ela substitui a atual anterior. A data usada é a do campo lá em cima (' + longDate(S.date) + ').</p>' +
       '<div class="photo-grid">' + POSES.map(function (p) { return slotHtml("atual", p); }).join("") + '</div>' +
-      '<p class="note" style="margin-top:10px">As fotos ficam na sua área privada do diário e são reduzidas para caber no espaço.</p></section>' +
+      '<p class="note" style="margin-top:10px">' + (S.mode === "local" ? 'As fotos ficam neste aparelho, dentro do navegador, e vão junto no backup do Google Drive se ele estiver ligado. Elas são reduzidas para caber no espaço.' : 'As fotos ficam na sua área privada do diário e são reduzidas para caber no espaço.') + '</p></section>' +
       '<h2 class="sec-title">Comparação</h2><div id="cmpBox">' + cmpHtml() + '</div>';
   }
 
