@@ -996,7 +996,7 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
       });
     };
     return run().then(function () {
-      setStatus(S.mode === "local" ? "Salvo só neste aparelho" : "Salvo na sua conta");
+      setStatus(S.mode === "local" ? "Salvo só neste aparelho" : "Salvo na sua conta"); bkSoon();
     }, function () {
       S.blocked = true; setStatus("Não está salvando. Exporte seus dados pelos três pontinhos.");
     }).then(function () { S.writing[id] = false; });
@@ -1048,7 +1048,7 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
   var DOTS = '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>';
   function moreHtml() {
     return '<button type="button" class="more" data-act="more" aria-label="Mais opções" aria-haspopup="menu" aria-expanded="' + !!S.menu + '">' + DOTS + '</button>' +
-      (S.menu ? '<div class="menu" role="menu"><button type="button" role="menuitem" data-act="exp">Exportar dados</button><button type="button" role="menuitem" data-act="imp">Importar dados</button></div>' : '');
+      (S.menu ? '<div class="menu" role="menu"><button type="button" role="menuitem" data-act="exp">Exportar dados</button><button type="button" role="menuitem" data-act="imp">Importar dados</button><button type="button" role="menuitem" data-act="bk">Backup automático</button></div>' : '');
   }
   document.addEventListener("click", function (e) { if (S.menu && !(e.target.closest && e.target.closest(".top-r"))) { S.menu = false; render(); } });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && S.menu) { S.menu = false; render(); } });
@@ -1062,6 +1062,71 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
     document.body.appendChild(back); document.body.style.overflow = "hidden";
     back.addEventListener("keydown", function (e) { if (e.key === "Escape") dlgClose(); });
     return back;
+  }
+
+  /* ---------- backup automatico (Google Drive, via Apps Script) ---------- */
+  var BK = { url: "", last: "", err: false, t: 0, pend: false };
+  function bkOk(u) { return /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u); }
+  function bkSaveCfg() { try { localStorage.setItem(LS + ":bk", JSON.stringify({ url: BK.url, last: BK.last })); } catch (e) {} }
+  (function () {
+    try { var o = JSON.parse(localStorage.getItem(LS + ":bk") || "{}"); if (o && bkOk(o.url || "")) { BK.url = o.url; BK.last = typeof o.last === "string" ? o.last : ""; } } catch (e) {}
+    try {
+      var m = /[#&]backup=([^&]+)/.exec(location.hash || "");
+      if (m) {
+        var u = decodeURIComponent(m[1]);
+        if (bkOk(u)) { BK.url = u; S.bkNew = true; bkSaveCfg(); }
+        try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+      }
+    } catch (e) {}
+  })();
+  function bkHM(iso) { var d = new Date(iso); return d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0"); }
+  function bkTxt() { return BK.url ? (BK.err ? " · backup pendente" : BK.last ? " · backup " + bkHM(BK.last) : "") : ""; }
+  function baseStatus() { return S.mode === "local" ? "Salvo só neste aparelho" : "Salvo na sua conta"; }
+  function bkSoon() {
+    if (!BK.url) return;
+    BK.pend = true; clearTimeout(BK.t); BK.t = setTimeout(function () { bkSend(); }, 8000);
+  }
+  function bkSend() {
+    clearTimeout(BK.t); BK.pend = false;
+    if (!BK.url || !store || typeof fetch !== "function") return Promise.resolve("off");
+    var r = buildExport(true);
+    if (!r.n.s && !r.n.m && !r.n.f) return Promise.resolve("vazio");
+    return fetch(BK.url, { method: "POST", mode: "no-cors", keepalive: true, headers: { "Content-Type": "text/plain;charset=utf-8" }, body: r.text }).then(function () {
+      BK.last = new Date().toISOString(); BK.err = false; bkSaveCfg(); setStatus(baseStatus() + bkTxt()); return "ok";
+    }, function () {
+      BK.err = true; setStatus(baseStatus() + bkTxt()); return "erro";
+    });
+  }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden" && BK.pend) bkSend(); });
+  function openBackup() {
+    var dm = function (iso) { var d = new Date(iso); return String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0") + " às " + bkHM(iso); };
+    if (!BK.url) {
+      dlgOpen('<h2>Backup automático</h2><p class="hint">Cole aqui o link do script do Google (termina em /exec). Depois de ligar, uma cópia dos seus dados vai para o seu Google Drive a cada vez que você salvar algo.</p>' +
+        '<textarea class="dlg-tx" id="bkUrl" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="https://script.google.com/macros/s/.../exec" aria-label="Link do script" style="min-height:90px"></textarea>' +
+        '<div class="crop-actions"><button type="button" class="ghost" id="dlgX">Fechar</button><button type="button" class="primary" id="bkOn">Ligar</button></div>' +
+        '<p class="hint" id="bkMsg" role="status"></p>');
+      $("dlgX").addEventListener("click", dlgClose);
+      $("bkOn").addEventListener("click", function () {
+        var u = $("bkUrl").value.trim();
+        if (!bkOk(u)) { $("bkMsg").textContent = "Esse link não parece certo. Ele começa com https://script.google.com/macros/s/ e termina com /exec."; return; }
+        BK.url = u; BK.err = false; bkSaveCfg(); dlgClose(); setStatus("Backup automático ligado"); bkSoon();
+      });
+      return;
+    }
+    dlgOpen('<h2>Backup automático</h2><p class="hint" id="bkSt"></p>' +
+      '<div class="crop-actions"><button type="button" class="ghost" id="dlgX">Fechar</button><button type="button" class="ghost" id="bkOff">Desligar</button><button type="button" class="primary" id="bkNow">Enviar agora</button></div>' +
+      '<p class="hint" id="bkMsg" role="status">Cada vez que você salva um treino, o app envia uma cópia para o Google Drive. Para restaurar, abra o link do script no navegador, copie o texto e use Importar dados.</p>');
+    var st = function () { $("bkSt").textContent = "Ligado. " + (BK.last ? "Último envio: " + dm(BK.last) + "." : "Ainda não enviou.") + (BK.err ? " O último envio falhou, ele tenta de novo no próximo salvamento." : ""); };
+    st();
+    $("dlgX").addEventListener("click", dlgClose);
+    $("bkOff").addEventListener("click", function () { BK.url = ""; BK.last = ""; BK.err = false; try { localStorage.removeItem(LS + ":bk"); } catch (e) {} dlgClose(); setStatus("Backup automático desligado"); });
+    $("bkNow").addEventListener("click", function () {
+      $("bkMsg").textContent = "Enviando…";
+      bkSend().then(function (r) {
+        $("bkMsg").textContent = r === "ok" ? "Enviado. Confira o arquivo ultimo.json na pasta Backup Treinos Pedro do Drive." : r === "vazio" ? "Ainda não há nada para enviar." : r === "off" ? "Este navegador não permite o envio." : "Não consegui enviar. Veja a internet e tente de novo.";
+        st();
+      });
+    });
   }
 
   function buildExport(withPhotos) {
@@ -1183,6 +1248,7 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
   }
   function applyImport(list, done) {
     var prev = {}, ok = 0, fail = 0, i = 0;
+    bkSoon();
     list.forEach(function (it) { prev[it[0]] = S.docs[it[0]]; });
     function undo(id) { if (prev[id]) S.docs[id] = prev[id]; else delete S.docs[id]; }
     if (store.mode === "local") {
@@ -1311,6 +1377,7 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
     var act = b.dataset.act; if (!act) return;
     if (act === "pickback") { S.day = dayForDate(S.date); render(); return; }
     if (act === "more") { S.menu = !S.menu; render(); return; }
+    if (act === "bk") { S.menu = false; render(); openBackup(); return; }
     if (act === "exp") { S.menu = false; render(); openExport(); return; }
     if (act === "imp") { S.menu = false; render(); openImport(); return; }
     if (act === "calprev" || act === "calnext") {
@@ -1366,6 +1433,7 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
     store = st; S.mode = st.mode; S.blocked = !!st.blocked;
     Object.keys(st.docs).forEach(function (id) { if (!S.docs[id]) S.docs[id] = st.docs[id]; });
     if (S.day === dayForDate(S.date)) S.day = dayFor(S.date);
+    if (BK.url) { if (S.bkNew) setStatus("Backup automático ligado"); bkSoon(); }
     if (S.mode === "db") migrateFotos();
     var active = document.activeElement, typing = active && active.matches && active.matches("input[data-f]");
     if (!typing) render(); else setStatus(S.mode === "local" ? "Salvando só neste aparelho" : "Salvo na sua conta");
