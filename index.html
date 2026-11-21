@@ -263,6 +263,28 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
 .pd-err { min-height: 20px; margin: 0; color: #c0392b; font-size: 13px; }
 .pd-toast { position: fixed; left: 12px; right: 12px; margin: 0 auto; max-width: 420px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 60; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font-size: 14px; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
 .pd-toast button { flex: none; min-height: 44px; padding: 0 12px; border: 0; border-radius: 10px; background: transparent; color: var(--accent); font-weight: 700; font-size: 14px; }
+.pic-wrap { position: relative; }
+.pic-zoom { position: absolute; top: 0; right: 0; width: 44px; height: 44px; margin: 0; padding: 0; border: 0; background: none; display: grid; place-items: center; color: #fff; }
+.pic-zoom svg { width: 26px; height: 26px; padding: 5px; box-sizing: border-box; border-radius: 8px; background: rgba(0, 0, 0, 0.55); }
+.pic-zoom:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: 10px; }
+.pic-open { cursor: zoom-in; }
+.pic-zoom-deco { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; color: #fff; pointer-events: none; }
+.pic-zoom-deco svg { display: block; width: 100%; height: 100%; padding: 5px; box-sizing: border-box; border-radius: 8px; background: rgba(0, 0, 0, 0.55); }
+.pv-back { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 80; background: rgba(0, 0, 0, 0.96); color: #fff; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-animation: pvfade 0.15s ease-out; animation: pvfade 0.15s ease-out; }
+@-webkit-keyframes pvfade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pvfade { from { opacity: 0; } to { opacity: 1; } }
+.pv-stage { position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+.pv-img { max-width: 100%; max-height: 100%; width: auto; height: auto; -webkit-user-drag: none; -webkit-touch-callout: none; will-change: transform; }
+.pv-x, .pv-zoom button { width: 44px; height: 44px; margin: 0; padding: 0; border: 0; border-radius: 22px; background: rgba(48, 48, 48, 0.88); color: #fff; display: grid; place-items: center; font-size: 24px; line-height: 1; }
+.pv-x svg { width: 22px; height: 22px; }
+.pv-x { position: absolute; z-index: 2; top: 12px; top: max(12px, env(safe-area-inset-top)); left: 12px; left: max(12px, env(safe-area-inset-left)); }
+.pv-x:focus-visible, .pv-zoom button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.pv-zoom { position: absolute; z-index: 2; right: 12px; right: max(12px, env(safe-area-inset-right)); bottom: 62px; bottom: max(62px, calc(env(safe-area-inset-bottom) + 48px)); display: flex; flex-direction: column; gap: 8px; }
+.pv-cap { position: absolute; left: 0; right: 0; bottom: 16px; bottom: max(16px, env(safe-area-inset-bottom)); padding: 0 64px; text-align: center; font-size: 14px; font-weight: 600; text-shadow: 0 1px 3px #000; pointer-events: none; }
+.pv-hint { position: absolute; left: 0; right: 0; top: 64px; top: max(64px, calc(env(safe-area-inset-top) + 52px)); text-align: center; pointer-events: none; transition: opacity 0.4s; }
+.pv-hint span { display: inline-block; padding: 6px 12px; border-radius: 14px; background: rgba(48, 48, 48, 0.88); font-size: 13px; }
+.pv-cap, .pv-zoom { transition: opacity 0.15s; }
+.pv-nochrome .pv-cap, .pv-nochrome .pv-zoom { opacity: 0; pointer-events: none; }
 .extra-btn { width: 100%; min-height: 44px; margin-top: 8px; border-radius: 12px; border: 1px dashed var(--line); background: transparent; color: var(--muted); font-weight: 600; }
 .extra-btn[aria-pressed="true"] { border-style: solid; border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -839,14 +861,14 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
   function slotHtml(set, p) {
     var f = foto(set, p.k), id = fid(set, p.k), locked = set === "inicio" && f && S.unlock !== id;
     var inner = f ? '<img src="' + f.img + '" alt="Foto de ' + p.l.toLowerCase() + ' (' + (set === "inicio" ? "início" : "atual") + ') de ' + shortDate(f.date) + '">' : '<span>Tocar para<br>enviar</span>';
-    var box = locked ? '<div class="pic has">' + inner + '</div>' :
+    var box = locked ? '<button type="button" class="pic has pic-open" data-act="viewfoto" data-id="' + id + '" aria-label="Ver foto em tela cheia: ' + p.l + ', ' + (set === "inicio" ? "Início" : "Atual") + '">' + inner + '<span class="pic-zoom-deco" aria-hidden="true">' + PV_EXP + '</span></button>' :
       '<label class="pic' + (f ? " has" : "") + '">' + inner + '<input type="file" accept="image/*" data-photo="' + set + ':' + p.k + '" aria-label="' + (f ? "Trocar" : "Enviar") + ' foto de ' + p.l.toLowerCase() + ' (' + (set === "inicio" ? "início" : "atual") + ')"></label>';
     var btn = "";
     if (f) btn += '<button type="button" class="ghost" data-act="adjfoto" data-id="' + id + '">Enquadrar</button>';
     if (f && set === "inicio") btn += '<button type="button" class="ghost" data-act="unlock" data-id="' + id + '">' + (locked ? "Substituir" : "Cancelar") + '</button>';
     if (f && set === "atual") btn += '<button type="button" class="ghost" data-act="delfoto" data-id="' + id + '">' + (S.confirmDel === id ? "Confirmar" : "Remover") + '</button>';
     var lbl = f ? '<button type="button" class="slot-edit" data-act="photodate" data-id="' + id + '" aria-label="Alterar data da foto de ' + p.l.toLowerCase() + ', atualmente ' + longDate(f.date) + '">' + p.l + ' · ' + shortDate(f.date) + PD_PENCIL + '</button>' : '<span class="slot-l">' + p.l + '</span>';
-    return '<div class="slot">' + lbl + box + (btn ? '<div class="slot-btns">' + btn + '</div>' : '') + '</div>';
+    return '<div class="slot">' + lbl + '<div class="pic-wrap">' + box + (f && !locked ? '<button type="button" class="pic-zoom" data-act="viewfoto" data-id="' + id + '" aria-label="Ver foto em tela cheia: ' + p.l + ', ' + (set === "inicio" ? "Início" : "Atual") + '">' + PV_EXP + '</button>' : '') + '</div>' + (btn ? '<div class="slot-btns">' + btn + '</div>' : '') + '</div>';
   }
   /* ---------- mudar a data de uma foto ja enviada ---------- */
   var PD_PENCIL = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
@@ -908,6 +930,137 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
       });
     });
     check();
+  }
+
+  /* ---------- foto em tela cheia ---------- */
+  var PV = null, PV_HINT = false;
+  var PV_EXP = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
+  var PV_XI = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  function pvClamp() {
+    var st = PV.st, r = PV.stage.getBoundingClientRect();
+    st.s = Math.max(1, Math.min(4, st.s));
+    var mx = Math.max(0, (PV.bw * st.s - r.width) / 2), my = Math.max(0, (PV.bh * st.s - r.height) / 2);
+    st.tx = Math.max(-mx, Math.min(mx, st.tx));
+    if (!PV.drag) st.ty = Math.max(-my, Math.min(my, st.ty));
+  }
+  function pvApply(anim) {
+    var st = PV.st, i = PV.img, tr = "translate(" + st.tx + "px," + st.ty + "px) scale(" + st.s + ")";
+    i.style.transition = anim ? "transform 0.18s" : "none";
+    i.style.webkitTransform = tr; i.style.transform = tr;
+  }
+  function pvMeasure() { PV.bw = PV.img.offsetWidth; PV.bh = PV.img.offsetHeight; }
+  function pvZoomAt(ns, px, py, anim) {
+    var st = PV.st; ns = Math.max(1, Math.min(4, ns));
+    var k = ns / st.s; st.tx = px - (px - st.tx) * k; st.ty = py - (py - st.ty) * k; st.s = ns;
+    pvClamp(); pvApply(anim);
+  }
+  function pvReset(anim) { PV.st.s = 1; PV.st.tx = 0; PV.st.ty = 0; PV.drag = false; pvApply(anim); PV.back.style.background = ""; }
+  function pvPt(t) { var r = PV.stage.getBoundingClientRect(); return { x: t.clientX - r.left - r.width / 2, y: t.clientY - r.top - r.height / 2 }; }
+  function pvDist(a, b) { return Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y)); }
+  function pvTap(p) {
+    var now = Date.now(), lt = PV.lastTap;
+    if (lt && now - lt.t < 320 && pvDist(lt, p) < 40) {
+      clearTimeout(PV.tm); PV.lastTap = null;
+      if (PV.st.s > 1.05) pvReset(true); else pvZoomAt(2.5, p.x, p.y, true);
+    } else {
+      PV.lastTap = { t: now, x: p.x, y: p.y };
+      clearTimeout(PV.tm); PV.tm = setTimeout(function () { PV.lastTap = null; if (PV) PV.back.classList.toggle("pv-nochrome"); }, 300);
+    }
+  }
+  function pvStart(e) {
+    var ts = e.touches;
+    if (ts.length >= 2) {
+      var a = pvPt(ts[0]), b = pvPt(ts[1]);
+      PV.g = { mode: "pinch", d0: pvDist(a, b) || 1, s0: PV.st.s, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+    } else if (ts.length === 1) {
+      var p = pvPt(ts[0]);
+      PV.g = { mode: "pan", x0: p.x, y0: p.y, tx0: PV.st.tx, ty0: PV.st.ty, t0: Date.now(), moved: false };
+    }
+  }
+  function pvMove(e) {
+    var g = PV.g, ts = e.touches; if (!g) return;
+    if (g.mode === "pinch" && ts.length >= 2) {
+      var a = pvPt(ts[0]), b = pvPt(ts[1]), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      pvZoomAt(g.s0 * (pvDist(a, b) / g.d0), mx, my, false);
+      PV.st.tx += mx - g.mx; PV.st.ty += my - g.my; g.mx = mx; g.my = my; pvClamp(); pvApply(false);
+    } else if (g.mode === "pan" && ts.length === 1) {
+      var p = pvPt(ts[0]), dx = p.x - g.x0, dy = p.y - g.y0;
+      if (Math.abs(dx) + Math.abs(dy) > 10) g.moved = true;
+      if (PV.st.s > 1.02) { PV.st.tx = g.tx0 + dx; PV.st.ty = g.ty0 + dy; pvClamp(); pvApply(false); }
+      else if (g.moved && Math.abs(dy) > Math.abs(dx)) {
+        PV.drag = true; PV.st.tx = 0; PV.st.ty = dy; pvApply(false);
+        PV.back.style.background = "rgba(0,0,0," + (0.96 - Math.min(0.6, Math.abs(dy) / 400)) + ")";
+      }
+    }
+  }
+  function pvEnd(e) {
+    var g = PV.g, ts = e.touches;
+    if (ts.length >= 1 && g && g.mode === "pinch") { pvStart(e); return; }
+    if (ts.length > 0) return;
+    PV.g = null; if (!g) return;
+    if (PV.st.s < 1.02) { PV.st.s = 1; PV.st.tx = 0; }
+    if (g.mode === "pan" && !g.moved && Date.now() - g.t0 < 300) { pvTap({ x: g.x0, y: g.y0 }); return; }
+    if (PV.drag) {
+      if (PV.st.ty > 110) { closeViewer(); return; }
+      pvReset(true); return;
+    }
+    pvClamp(); pvApply(true);
+  }
+  function pvKey(e) {
+    if (!PV) return;
+    if (e.key === "Escape") { e.preventDefault(); closeViewer(); return; }
+    if (e.key === "Tab") {
+      var f = [$("pvX"), $("pvMinus"), $("pvPlus")], i = f.indexOf(document.activeElement);
+      e.preventDefault(); f[(i + (e.shiftKey ? f.length - 1 : 1)) % f.length].focus();
+    }
+  }
+  function pvResize() { if (!PV) return; pvMeasure(); pvReset(false); }
+  function pvPop() { if (PV) { PV.hist = false; closeViewer(); } }
+  function closeViewer() {
+    if (!PV) return;
+    var v = PV; PV = null;
+    clearTimeout(v.tm); clearTimeout(v.hm);
+    document.removeEventListener("keydown", pvKey); window.removeEventListener("resize", pvResize); window.removeEventListener("orientationchange", pvResize); window.removeEventListener("popstate", pvPop);
+    document.removeEventListener("mousemove", v.mm); document.removeEventListener("mouseup", v.mu);
+    v.back.remove(); document.body.style.overflow = v.ov;
+    var el = document.querySelector('[data-act="viewfoto"][data-id="' + v.id + '"]'); if (el) { try { el.focus(); } catch (e) {} }
+    if (v.hist) { try { history.back(); } catch (e) {} }
+  }
+  function openViewer(id) {
+    var f = S.docs[id]; if (!f || !f.img || PV) return;
+    var pose = pdPose(f.pose), set = f.set === "inicio" ? "Início" : "Atual";
+    var back = document.createElement("div"); back.className = "pv-back"; back.setAttribute("role", "dialog"); back.setAttribute("aria-modal", "true"); back.setAttribute("aria-label", "Foto " + pose + ", " + set);
+    back.innerHTML = '<div class="pv-stage" id="pvStage"><img class="pv-img" id="pvImg" alt="Foto de ' + pose.toLowerCase() + ' (' + set.toLowerCase() + ') de ' + longDate(f.date) + '" draggable="false"></div>' +
+      '<button type="button" class="pv-x" id="pvX" aria-label="Fechar foto">' + PV_XI + '</button>' +
+      '<div class="pv-zoom"><button type="button" id="pvPlus" aria-label="Aumentar zoom">+</button><button type="button" id="pvMinus" aria-label="Diminuir zoom">−</button></div>' +
+      '<div class="pv-cap" id="pvCap">' + pose + ' · ' + set + ' · ' + longDate(f.date) + '</div>' +
+      (PV_HINT ? '' : '<div class="pv-hint" id="pvHint" aria-hidden="true"><span>Toque duas vezes para ampliar</span></div>');
+    document.body.appendChild(back);
+    var stage = $("pvStage"), img = $("pvImg");
+    PV = { back: back, stage: stage, img: img, id: id, st: { s: 1, tx: 0, ty: 0 }, g: null, lastTap: null, tm: 0, hm: 0, drag: false, hist: false, bw: 0, bh: 0, ov: document.body.style.overflow };
+    document.body.style.overflow = "hidden";
+    img.onload = pvMeasure; img.src = f.img; if (img.complete) pvMeasure();
+    stage.addEventListener("touchstart", function (e) { e.preventDefault(); pvStart(e); }, { passive: false });
+    stage.addEventListener("touchmove", function (e) { e.preventDefault(); pvMove(e); }, { passive: false });
+    stage.addEventListener("touchend", function (e) { e.preventDefault(); pvEnd(e); }, { passive: false });
+    stage.addEventListener("touchcancel", function () { PV.g = null; pvReset(true); });
+    back.addEventListener("touchmove", function (e) { e.preventDefault(); }, { passive: false });
+    stage.addEventListener("dblclick", function (e) { var p = pvPt(e); if (PV.st.s > 1.05) pvReset(true); else pvZoomAt(2.5, p.x, p.y, true); });
+    stage.addEventListener("wheel", function (e) { e.preventDefault(); var p = pvPt(e); pvZoomAt(PV.st.s * (e.deltaY < 0 ? 1.2 : 1 / 1.2), p.x, p.y, false); }, { passive: false });
+    stage.addEventListener("mousedown", function (e) {
+      if (PV.st.s <= 1.02) return;
+      var p = pvPt(e), g = { x0: p.x, y0: p.y, tx0: PV.st.tx, ty0: PV.st.ty };
+      PV.mm = function (ev) { var q = pvPt(ev); PV.st.tx = g.tx0 + q.x - g.x0; PV.st.ty = g.ty0 + q.y - g.y0; pvClamp(); pvApply(false); };
+      PV.mu = function () { document.removeEventListener("mousemove", PV.mm); document.removeEventListener("mouseup", PV.mu); };
+      document.addEventListener("mousemove", PV.mm); document.addEventListener("mouseup", PV.mu);
+    });
+    $("pvX").addEventListener("click", closeViewer);
+    $("pvPlus").addEventListener("click", function () { pvZoomAt(PV.st.s * 1.5, 0, 0, true); });
+    $("pvMinus").addEventListener("click", function () { pvZoomAt(PV.st.s / 1.5, 0, 0, true); });
+    document.addEventListener("keydown", pvKey); window.addEventListener("resize", pvResize); window.addEventListener("orientationchange", pvResize); window.addEventListener("popstate", pvPop);
+    try { history.pushState({ pv: 1 }, ""); PV.hist = true; } catch (e) {}
+    if (!PV_HINT) { PV_HINT = true; PV.hm = setTimeout(function () { var h = $("pvHint"); if (h) h.style.opacity = "0"; }, 3000); }
+    $("pvX").focus();
   }
 
   function cmpHtml() {
@@ -1461,6 +1614,7 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
       S.date = b.dataset.date; S.day = dayForDate(S.date);
       Object.keys(S.docs).forEach(function (id) { var d = S.docs[id]; if (!d.kind && d.date === S.date && d.sets && PLAN[d.day] && Object.keys(d.sets).some(function (k) { return d.sets[k].some(hasData); })) S.day = d.day; }); S.view = "treino"; render(); window.scrollTo(0, 0); return; }
     if (act === "photodate") { openPhotoDate(b.dataset.id); return; }
+    if (act === "viewfoto") { openViewer(b.dataset.id); return; }
     if (act === "adjfoto") {
       var ad = S.docs[b.dataset.id];
       if (ad && ad.img) openCrop({ set: ad.set, pose: ad.pose, url: ad.img, date: ad.date });
