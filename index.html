@@ -255,6 +255,14 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
 .pick-note { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--line); color: var(--muted); font-size: 13px; }
 .pick-note button { flex: none; min-height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--fg); }
 .warn { margin-top: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid #c0392b; background: rgba(192,57,43,.12); color: var(--fg); font-size: 14px; line-height: 1.4; }
+.slot > .slot-l { display: flex; align-items: center; min-height: 32px; }
+.slot-edit { display: flex; align-items: center; gap: 4px; min-height: 32px; margin: 0; padding: 0; border: 0; background: none; color: var(--muted); font-size: 13px; font-weight: 600; text-align: left; text-decoration: underline dotted; text-underline-offset: 3px; white-space: nowrap; }
+.slot-edit svg { flex: none; width: 12px; height: 12px; }
+.slot-edit:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.pd-in { width: 100%; min-height: 48px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface2); color: var(--fg); font-size: 16px; }
+.pd-err { min-height: 20px; margin: 0; color: #c0392b; font-size: 13px; }
+.pd-toast { position: fixed; left: 12px; right: 12px; margin: 0 auto; max-width: 420px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 60; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font-size: 14px; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+.pd-toast button { flex: none; min-height: 44px; padding: 0 12px; border: 0; border-radius: 10px; background: transparent; color: var(--accent); font-weight: 700; font-size: 14px; }
 .extra-btn { width: 100%; min-height: 44px; margin-top: 8px; border-radius: 12px; border: 1px dashed var(--line); background: transparent; color: var(--muted); font-weight: 600; }
 .extra-btn[aria-pressed="true"] { border-style: solid; border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -837,8 +845,71 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
     if (f) btn += '<button type="button" class="ghost" data-act="adjfoto" data-id="' + id + '">Enquadrar</button>';
     if (f && set === "inicio") btn += '<button type="button" class="ghost" data-act="unlock" data-id="' + id + '">' + (locked ? "Substituir" : "Cancelar") + '</button>';
     if (f && set === "atual") btn += '<button type="button" class="ghost" data-act="delfoto" data-id="' + id + '">' + (S.confirmDel === id ? "Confirmar" : "Remover") + '</button>';
-    return '<div class="slot"><span class="slot-l">' + p.l + (f ? " · " + shortDate(f.date) : "") + '</span>' + box + (btn ? '<div class="slot-btns">' + btn + '</div>' : '') + '</div>';
+    var lbl = f ? '<button type="button" class="slot-edit" data-act="photodate" data-id="' + id + '" aria-label="Alterar data da foto de ' + p.l.toLowerCase() + ', atualmente ' + longDate(f.date) + '">' + p.l + ' · ' + shortDate(f.date) + PD_PENCIL + '</button>' : '<span class="slot-l">' + p.l + '</span>';
+    return '<div class="slot">' + lbl + box + (btn ? '<div class="slot-btns">' + btn + '</div>' : '') + '</div>';
   }
+  /* ---------- mudar a data de uma foto ja enviada ---------- */
+  var PD_PENCIL = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+  function pdStatus() { return S.mode === "local" ? "Salvo só neste aparelho" : "Salvo na sua conta"; }
+  function pdPose(k) { for (var i = 0; i < POSES.length; i++) if (POSES[i].k === k) return POSES[i].l; return k; }
+  function pdValid(v) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return "Escolha uma data.";
+    var p = v.split("-"), d = new Date(+p[0], +p[1] - 1, +p[2]);
+    if (d.getFullYear() !== +p[0] || d.getMonth() !== +p[1] - 1 || d.getDate() !== +p[2]) return "Essa data não existe.";
+    if (v > todayStr()) return "A data não pode ser depois de hoje.";
+    return "";
+  }
+  function pdFocusBack(id) { var el = document.querySelector('[data-act="photodate"][data-id="' + id + '"]'); if (el) el.focus(); }
+  function pdSave(id, nd, quiet) {
+    var f = S.docs[id]; if (!f) return Promise.resolve(false);
+    var prev = f.date, prevAt = f.updatedAt;
+    f.date = nd; f.updatedAt = new Date().toISOString();
+    return Promise.resolve(store.save(id, clone(f))).then(function () {
+      render(); setStatus(pdStatus());
+      if (typeof bkSoon === "function") bkSoon();
+      return prev;
+    }, function () {
+      f.date = prev; f.updatedAt = prevAt; render(); setStatus("Não foi possível alterar a data. Tente de novo."); return false;
+    });
+  }
+  var PD_T = 0;
+  function pdToast(id, prev, nd) {
+    var old = document.getElementById("pdToast"); if (old) old.remove();
+    clearTimeout(PD_T);
+    var t = document.createElement("div"); t.className = "pd-toast"; t.id = "pdToast"; t.setAttribute("role", "status");
+    t.innerHTML = '<span>Data alterada para ' + longDate(nd) + '.</span><button type="button" id="pdUndo">Desfazer</button>';
+    document.body.appendChild(t);
+    $("pdUndo").addEventListener("click", function () {
+      t.remove(); clearTimeout(PD_T);
+      pdSave(id, prev, true).then(function () { setStatus("Data restaurada para " + longDate(prev)); pdFocusBack(id); });
+    });
+    PD_T = setTimeout(function () { if (t.parentNode) t.remove(); }, 6000);
+  }
+  function openPhotoDate(id) {
+    var f = S.docs[id]; if (!f || f.kind !== "foto" || !store) return;
+    var pose = pdPose(f.pose), set = f.set === "inicio" ? "início" : "atual";
+    dlgOpen('<h2>Data da foto</h2><p class="hint">' + pose + ' (' + set + '). Atual: ' + longDate(f.date) + '</p>' +
+      '<label class="hint" for="pdIn">Nova data</label>' +
+      '<input type="date" id="pdIn" class="pd-in" value="' + f.date + '" max="' + todayStr() + '" required>' +
+      '<p class="pd-err" id="pdErr" role="alert" aria-live="assertive"></p>' +
+      '<div class="crop-actions"><button type="button" class="ghost" id="dlgX">Cancelar</button><button type="button" class="primary" id="pdOk">Salvar</button></div>');
+    var inp = $("pdIn"), err = $("pdErr"), ok = $("pdOk");
+    function check() { var m = pdValid(inp.value); err.textContent = m; ok.disabled = !!m; ok.style.opacity = m ? "0.4" : ""; return !m; }
+    inp.addEventListener("input", check); inp.addEventListener("change", check);
+    $("dlgX").addEventListener("click", function () { dlgClose(); pdFocusBack(id); });
+    ok.addEventListener("click", function () {
+      if (!check()) return;
+      var nd = inp.value;
+      if (nd === f.date) { dlgClose(); pdFocusBack(id); return; }
+      ok.disabled = true;
+      pdSave(id, nd).then(function (prev) {
+        if (prev === false) { check(); return; }
+        dlgClose(); pdFocusBack(id); pdToast(id, prev, nd);
+      });
+    });
+    check();
+  }
+
   function cmpHtml() {
     var h = "", any = false, ma = null, mb = null;
     POSES.forEach(function (p) {
@@ -1389,6 +1460,7 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
     if (act === "goday") {
       S.date = b.dataset.date; S.day = dayForDate(S.date);
       Object.keys(S.docs).forEach(function (id) { var d = S.docs[id]; if (!d.kind && d.date === S.date && d.sets && PLAN[d.day] && Object.keys(d.sets).some(function (k) { return d.sets[k].some(hasData); })) S.day = d.day; }); S.view = "treino"; render(); window.scrollTo(0, 0); return; }
+    if (act === "photodate") { openPhotoDate(b.dataset.id); return; }
     if (act === "adjfoto") {
       var ad = S.docs[b.dataset.id];
       if (ad && ad.img) openCrop({ set: ad.set, pose: ad.pose, url: ad.img, date: ad.date });
