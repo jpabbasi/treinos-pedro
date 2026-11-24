@@ -1316,13 +1316,14 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
     if (!BK.url || !store || typeof fetch !== "function") return Promise.resolve("off");
     var r = buildExport(true);
     if (!r.n.s && !r.n.m && !r.n.f) return Promise.resolve("vazio");
-    return fetch(BK.url, { method: "POST", mode: "no-cors", keepalive: true, headers: { "Content-Type": "text/plain;charset=utf-8" }, body: r.text }).then(function () {
+    return fetch(BK.url, { method: "POST", mode: "no-cors", keepalive: r.text.length < 40000, headers: { "Content-Type": "text/plain;charset=utf-8" }, body: r.text }).then(function () {
       BK.last = new Date().toISOString(); BK.err = false; bkSaveCfg(); setStatus(baseStatus() + bkTxt()); return "ok";
     }, function () {
       BK.err = true; setStatus(baseStatus() + bkTxt()); return "erro";
     });
   }
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden" && BK.pend) bkSend(); });
+  window.addEventListener("online", function () { if (BK.url && BK.err) bkSend(); });
   function openBackup() {
     var dm = function (iso) { var d = new Date(iso); return String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0") + " às " + bkHM(iso); };
     if (!BK.url) {
