@@ -222,6 +222,15 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
 .dot.c { border-color: var(--ok); }
 .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--muted); align-items: center; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dot.m { background: var(--ok); border-color: var(--ok); }
+.dot.w.m { background: var(--accent); border-color: var(--ok); }
+.mt-b { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; margin-top: 12px; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); text-align: left; font: inherit; cursor: pointer; }
+.mt-b[aria-pressed="true"] { background: var(--ok-bg); border-color: var(--ok); }
+.mt-b:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mt-ck { flex: none; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--muted); box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 22px; line-height: 1; font-style: normal; }
+.mt-b[aria-pressed="true"] .mt-ck { background: var(--ok); border-color: var(--ok); color: var(--ok-bg); }
+.mt-b b { display: block; font-size: 17px; }
+.mt-b em { display: block; font-style: normal; font-size: 13px; color: var(--muted); margin-top: 2px; }
 .card-sum { display: grid; gap: 6px; margin-top: 12px; }
 .cardio-in { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
 .cardio-in input { width: 110px; min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface2); padding: 0 12px; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -304,7 +313,7 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
 (function () {
   /*APP*/var APP = {
     name: "Treinos Pedro", key: "treinos-pedro", ls: "treinos-pedro:v1", days: ["ter", "qui", "sab", "dom"],
-    cardio: false, mens: false, swapFrom: "", restPick: true,
+    cardio: false, mens: false, swapFrom: "", restPick: true, mt: true,
     restMsg: "Dia de muay thai, sem musculação. Se quiser encaixar algo, deixe 6 horas de intervalo.",
     howto: [
       "Progressão: bateu o topo das reps em todas as séries, sobe a carga no treino seguinte.",
@@ -542,7 +551,7 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
     return '<div class="tabs" role="tablist" aria-label="Dia do treino">' + tabs + '</div>' +
       (PLAN.extra ? '<button type="button" class="extra-btn" data-day="extra" aria-pressed="' + (S.day === "extra") + '">Treino extra opcional: upper completo</button>' : '') +
       '<div class="day"><h2>' + P.title + '</h2><p class="sub">' + (P.place ? '<span class="place">' + P.place + '</span>' : '') + '<span>' + P.sub + '</span></p></div>' +
-      (P.rest ? '<div class="empty" style="margin-top:12px">' + APP.restMsg + '</div>' + (APP.restPick ? pickHtml() : '') + (APP.cardio ? cardioCard() : '') : pickNote()) +
+      (P.rest ? '<div class="empty" style="margin-top:12px">' + APP.restMsg + '</div>' + (APP.mt ? mtHtml() : '') + (APP.restPick && !(APP.mt && mtOn(S.date)) ? pickHtml() : '') + (APP.cardio ? cardioCard() : '') : pickNote()) +
       (P.rest ? '' : '<div class="prog"><div class="prog-row"><span>Séries feitas</span><span id="progText"></span></div><div class="bar"><i id="progFill"></i></div></div>') +
       (P.rest ? '' : '<div class="cards">' + P.ex.map(function (e, i) { return cardHtml(e, i + 1); }).join("") + '</div>' + (APP.cardio ? cardioCard() : '')) +
       (P.rest ? '' : dayNotes(P) + howtoHtml());
@@ -1111,6 +1120,12 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
     for (var i = 0; i < 7; i++) out.push(dstr(new Date(p[0], p[1] - 1, p[2] - off + i)));
     return out;
   }
+  var MT_GOAL = 3;
+  function mtOn(ds) { var d = S.docs["mt_" + ds]; return !!(d && d.on); }
+  function mtHtml() {
+    var on = mtOn(S.date), n = weekDates(S.date).filter(mtOn).length;
+    return '<button type="button" class="mt-b" data-act="mt" aria-pressed="' + on + '"><i class="mt-ck" aria-hidden="true">' + (on ? "\u2713" : "") + '</i><span><b>' + (on ? "Fui ao muay thai" : "Fui ao muay thai hoje") + '</b><em>' + (on ? "Marcado em " + shortDate(S.date) + ". Toque para desmarcar." : "Toque para marcar.") + ' Semana: ' + n + ' de ' + MT_GOAL + '.</em></span></button>';
+  }
   function cardioMin(ds) { var d = S.docs["c_" + ds]; return d && d.min > 0 ? d.min : 0; }
   function cardioSumHtml() {
     var wk = weekDates(S.date), total = 0, n = 0, parts = [];
@@ -1139,6 +1154,7 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
     Object.keys(S.docs).forEach(function (id) {
       var d = S.docs[id];
       if (d.kind === "cardio") { if (d.min > 0) (m[d.date] = m[d.date] || {}).c = d.min; return; }
+      if (d.kind === "mt") { if (d.on) (m[d.date] = m[d.date] || {}).m = true; return; }
       if (d.kind) return;
       if (d.sets && Object.keys(d.sets).some(function (k) { return d.sets[k].some(hasData); })) (m[d.date] = m[d.date] || {}).w = true;
     });
@@ -1150,7 +1166,8 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
     });
     var cm = cardioMin(ds), p = ds.split("-").map(Number), wd = WD[new Date(p[0], p[1] - 1, p[2]).getDay()];
     var h = '<h2 class="sec-title">' + wd + " " + shortDate(ds) + '</h2>';
-    if (!docs.length && !cm) h += '<div class="empty">Nenhum treino registrado neste dia.</div>';
+    var mtd = mtOn(ds);
+    if (!docs.length && !cm && !mtd) h += '<div class="empty">Nenhum treino registrado neste dia.</div>';
     else {
       h += '<div class="list">';
       docs.forEach(function (d) {
@@ -1163,24 +1180,25 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
         h += '<details class="sess" open><summary><span>' + PLAN[d.day].title + '</span><span>' + done + " séries</span></summary><dl>" + rows + "</dl></details>";
       });
       if (cm) h += '<div class="rec"><span>Cardio na bike</span><b>' + fmt(cm) + ' min</b></div>';
+      if (mtd) h += '<div class="rec"><span>Muay thai</span><b>Fui</b></div>';
       h += '</div>';
     }
     return h + '<div class="ex-actions"><button type="button" class="ghost" data-act="goday" data-date="' + ds + '">Abrir este dia</button></div>';
   }
   function renderCal() {
     var y = S.hm.y, mo = S.hm.m, first = new Date(y, mo, 1), off = (first.getDay() + 6) % 7, nd = new Date(y, mo + 1, 0).getDate();
-    var td = trainedDates(), today = todayStr(), cw = 0, cc = 0, cany = 0, h;
+    var td = trainedDates(), today = todayStr(), cw = 0, cc = 0, cmt = 0, cany = 0, h;
     h = '<div class="cal-head"><button type="button" data-act="calprev" aria-label="Mês anterior">‹</button><b>' + MONTHS[mo] + " " + y + '</b><button type="button" data-act="calnext" aria-label="Próximo mês">›</button></div>';
     h += '<div class="cal" role="group" aria-label="Calendário de treinos">' + ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map(function (w) { return '<span class="cal-w">' + w + '</span>'; }).join("");
     for (var i = 0; i < off; i++) h += '<span class="cal-e"></span>';
     for (var d = 1; d <= nd; d++) {
       var ds = y + "-" + pad2(mo + 1) + "-" + pad2(d), info = td[ds] || {};
-      if (info.w) cw++; if (info.c) cc++; if (info.w || info.c) cany++;
-      var lab = d + " de " + MONTHS[mo].toLowerCase() + (info.w ? ", treino de musculação" : "") + (info.c ? ", cardio" : "") + (!info.w && !info.c ? ", sem treino" : "");
-      h += '<button type="button" class="cal-d' + (ds === today ? " today" : "") + (ds === S.hsel ? " sel" : "") + '" data-act="calday" data-date="' + ds + '" aria-label="' + lab + '"><span class="n">' + d + '</span><i class="dot' + (info.w ? " w" : "") + (info.c ? " c" : "") + '"></i></button>';
+      if (info.w) cw++; if (info.c) cc++; if (info.m) cmt++; if (info.w || info.c || info.m) cany++;
+      var lab = d + " de " + MONTHS[mo].toLowerCase() + (info.w ? ", treino de musculação" : "") + (info.c ? ", cardio" : "") + (info.m ? ", muay thai" : "") + (!info.w && !info.c && !info.m ? ", sem treino" : "");
+      h += '<button type="button" class="cal-d' + (ds === today ? " today" : "") + (ds === S.hsel ? " sel" : "") + '" data-act="calday" data-date="' + ds + '" aria-label="' + lab + '"><span class="n">' + d + '</span><i class="dot' + (info.w ? " w" : "") + (info.c ? " c" : "") + (info.m ? " m" : "") + '"></i></button>';
     }
-    h += '</div><div class="legend"><span><i class="dot w"></i>Musculação</span>' + (APP.cardio ? '<span><i class="dot c"></i>Cardio</span>' : '') + '</div>';
-    h += '<p class="note" style="margin-top:8px"><b>' + cany + '</b> ' + (cany === 1 ? "dia treinado" : "dias treinados") + ' em ' + MONTHS[mo].toLowerCase() + (APP.cardio ? ' (' + cw + ' de musculação, ' + cc + ' de cardio).' : '.') + '</p>';
+    h += '</div><div class="legend"><span><i class="dot w"></i>Musculação</span>' + (APP.cardio ? '<span><i class="dot c"></i>Cardio</span>' : '') + (APP.mt ? '<span><i class="dot m"></i>Muay thai</span>' : '') + '</div>';
+    h += '<p class="note" style="margin-top:8px"><b>' + cany + '</b> ' + (cany === 1 ? "dia treinado" : "dias treinados") + ' em ' + MONTHS[mo].toLowerCase() + (APP.cardio ? ' (' + cw + ' de musculação, ' + cc + ' de cardio).' : APP.mt ? ' (' + cw + ' de musculação, ' + cmt + ' de muay thai).' : '.') + '</p>';
     return h;
   }
 
@@ -1315,7 +1333,7 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
     clearTimeout(BK.t); BK.pend = false;
     if (!BK.url || !store || typeof fetch !== "function") return Promise.resolve("off");
     var r = buildExport(true);
-    if (!r.n.s && !r.n.m && !r.n.f) return Promise.resolve("vazio");
+    if (!r.n.s && !r.n.m && !r.n.f && !r.n.mt) return Promise.resolve("vazio");
     return fetch(BK.url, { method: "POST", mode: "no-cors", keepalive: r.text.length < 40000, headers: { "Content-Type": "text/plain;charset=utf-8" }, body: r.text }).then(function () {
       BK.last = new Date().toISOString(); BK.err = false; bkSaveCfg(); setStatus(baseStatus() + bkTxt()); return "ok";
     }, function () {
@@ -1356,12 +1374,13 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
   }
 
   function buildExport(withPhotos) {
-    var docs = {}, n = { s: 0, m: 0, c: 0, f: 0, fx: 0 };
+    var docs = {}, n = { s: 0, m: 0, c: 0, mt: 0, f: 0, fx: 0 };
     Object.keys(S.docs).forEach(function (id) {
       var d = S.docs[id]; if (!d || typeof d !== "object") return;
       if (d.kind === "foto") { if (!withPhotos) { n.fx++; return; } n.f++; }
       else if (d.kind === "medidas") n.m++;
       else if (d.kind === "cardio") n.c++;
+      else if (d.kind === "mt") n.mt++;
       else if (!d.kind) n.s++;
       docs[id] = d;
     });
@@ -1370,6 +1389,7 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
   function sumText(n) {
     var p = [n.s + (n.s === 1 ? " sessão de treino" : " sessões de treino"), n.m + (n.m === 1 ? " anotação de medidas" : " anotações de medidas")];
     if (APP.cardio) p.push(n.c + (n.c === 1 ? " dia de cardio" : " dias de cardio"));
+    if (n.mt) p.push(n.mt + (n.mt === 1 ? " marcação de muay thai" : " marcações de muay thai"));
     if (n.f) p.push(n.f + (n.f === 1 ? " foto" : " fotos"));
     return p.join(", ") + (n.fx ? ". " + n.fx + (n.fx === 1 ? " foto não incluída." : " fotos não incluídas.") : ".");
   }
@@ -1419,6 +1439,9 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
       var mn = cleanNum(d.min);
       if (d.kind !== "cardio" || mn == null || mn > 1440) return null;
       out = { kind: "cardio", date: m[1], min: Math.round(mn) };
+    } else if ((m = /^mt_(\d{4}-\d{2}-\d{2})$/.exec(id))) {
+      if (d.kind !== "mt") return null;
+      out = { kind: "mt", date: m[1], on: !!d.on };
     } else if ((m = /^p_(inicio|atual)_(frente|lado|costas)$/.exec(id))) {
       if (d.kind !== "foto" || typeof d.img !== "string" || d.img.indexOf("data:image/jpeg;base64,") !== 0 || d.img.length > 200000) return null;
       out = { kind: "foto", set: m[1], pose: m[2], date: typeof d.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d.date) ? d.date : todayStr(), img: d.img };
@@ -1448,11 +1471,11 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
     return { items: items, bad: bad, total: total, schema: schema };
   }
   function planImport(res, opts) {
-    var out = {}, c = { s: [0, 0], m: [0, 0], c: [0, 0], f: [0, 0], conv: 0, keep: 0, nofoto: 0 };
+    var out = {}, c = { s: [0, 0], m: [0, 0], c: [0, 0], mt: [0, 0], f: [0, 0], conv: 0, keep: 0, nofoto: 0 };
     Object.keys(res.items).forEach(function (id) {
       var d = res.items[id], nid = id;
       if (opts.convert && APP.swapFrom && !d.kind && d.date < APP.swapFrom && SWAP_DAY[d.day]) { d = clone(d); d.day = SWAP_DAY[d.day]; nid = d.date + "_" + d.day; c.conv++; }
-      var k = d.kind === "foto" ? "f" : d.kind === "medidas" ? "m" : d.kind === "cardio" ? "c" : "s";
+      var k = d.kind === "foto" ? "f" : d.kind === "medidas" ? "m" : d.kind === "cardio" ? "c" : d.kind === "mt" ? "mt" : "s";
       if (k === "f" && store.mode !== "db") { c.nofoto++; return; }
       var exists = !!S.docs[nid];
       if (exists && !opts.over) { c.keep++; return; }
@@ -1464,7 +1487,7 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
   function previewText(res, pl, opts) {
     var c = pl.c, p = [];
     function line(label, a) { if (a[0] || a[1]) p.push(label + ": " + a[0] + " novas" + (a[1] ? ", " + a[1] + " substituindo as que já existem" : "")); }
-    line("Sessões de treino", c.s); line("Medidas", c.m); if (APP.cardio) line("Cardio", c.c); line("Fotos", c.f);
+    line("Sessões de treino", c.s); line("Medidas", c.m); if (APP.cardio) line("Cardio", c.c); line("Muay thai", c.mt); line("Fotos", c.f);
     var s = p.length ? p.join(". ") + "." : "Nada para importar.";
     if (c.keep) s += " " + c.keep + (c.keep === 1 ? " item já existe aqui e será mantido." : " itens já existem aqui e serão mantidos.");
     if (c.conv) s += " " + c.conv + (c.conv === 1 ? " sessão de sábado ou domingo anterior a 21/11 será trocada" : " sessões de sábado ou domingo anteriores a 21/11 serão trocadas") + " para a nova ordem.";
@@ -1601,6 +1624,11 @@ details.sess dd { margin: 0; color: var(--muted); font-size: 14px; font-variant-
     if (b.dataset.view) { S.view = b.dataset.view; S.confirmDel = null; render(); return; }
     if (b.dataset.day) { S.day = b.dataset.day; render(); return; }
     var act = b.dataset.act; if (!act) return;
+    if (act === "mt") {
+      var mid = "mt_" + S.date;
+      S.docs[mid] = { kind: "mt", date: S.date, on: !mtOn(S.date), updatedAt: new Date().toISOString() };
+      scheduleSave(mid); render(); return;
+    }
     if (act === "pickback") { S.day = dayForDate(S.date); render(); return; }
     if (act === "more") { S.menu = !S.menu; render(); return; }
     if (act === "bk") { S.menu = false; render(); openBackup(); return; }
